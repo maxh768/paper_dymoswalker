@@ -28,6 +28,7 @@ class Brachistochrone(om.ExplicitComponent):
 
         arange = np.arange(self.options['num_nodes'])
         self.declare_partials(of='vdot', wrt='theta', rows=arange, cols=arange)
+
         self.declare_partials(of='xdot', wrt='v', rows=arange, cols=arange)
         self.declare_partials(of='xdot', wrt='theta', rows=arange, cols=arange)
 
@@ -36,14 +37,48 @@ class Brachistochrone(om.ExplicitComponent):
 
         self.declare_partials(of='check', wrt='v', rows=arange, cols=arange)
         self.declare_partials(of='check', wrt='theta', rows=arange, cols=arange)
+
         if self.options['static_gravity']:
             c = np.zeros(self.options['num_nodes'])
             self.declare_partials(of='vdot', wrt='g', rows=arange, cols=c)
         else:
             self.declare_partials(of='vdot', wrt='g', rows=arange, cols=arange)
-
         
 
+    def compute(self, inputs, outputs):
+        theta = inputs['theta']
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
+        g = inputs['g']
+        v = inputs['v']
 
-                        
+        outputs['vdot'] = g*cos_theta
+        outputs['ydot'] = -v*cos_theta
+        outputs['xdot'] = v*sin_theta
+        outputs['check'] = v / sin_theta
+
+    def compute_partials(self, inputs, partials):
+        theta = inputs['theta']
+        cos_theta = np.cos(theta)
+        sin_theta = np.sin(theta)
+        g = inputs['g']
+        v = inputs['v']
+
+        partials['vdot', 'g'] = cos_theta
+        partials['vdot', 'theta'] = -g*sin_theta
+        
+        partials['xdot', 'v'] = sin_theta
+        partials['xdot', 'theta'] = v*cos_theta
+
+        partials['ydot', 'v'] = -cos_theta
+        partials['ydot', 'theta'] = v*sin_theta
+
+        partials['check', 'v'] = 1/sin_theta
+        partials['check','theta'] = -v*cos_theta / sin_theta**2
+
+
+
+
+
+        
 
