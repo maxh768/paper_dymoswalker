@@ -53,3 +53,4 @@ exp_out = traj.simulate()
 plot_results([('traj.phase0.timeseries.x','traj.phase0.timeseries.y','x', 'y'), ('traj.phase0.timeseries.time','traj.phase0.timeseries.theta','time','theta')],title='Brach solution',p_sol=p,p_sim=exp_out)
 
 plt.show()
+## test from laptop
