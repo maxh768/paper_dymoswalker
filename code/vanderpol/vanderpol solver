@@ -1,0 +1,17 @@
+import openmdao.api as om
+import dymos as dm
+from vanderpol_dynamics import vanderpol
+
+p = om.Problem(model=om.group)
+p.driver = om.pyOptSparseDriver(print_results = False)
+p.driver.options['optimizer'] = 'IPOPT'
+p.driver.declare_coloring()
+p.model.linear_solver = om.DirectSolver()
+
+traj = dm.Trajectory()
+p.model.add_subsystem('traj',subsys=traj)
+
+
+
+
+    
