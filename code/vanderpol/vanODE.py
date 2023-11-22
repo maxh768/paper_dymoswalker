@@ -10,9 +10,9 @@ class vanderpolODE(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('x', val=np.ones(nn),desc='position of oscilitor', units='m')
-        self.add_input('x0',val=np.ones(nn),desc='rate of change of x', units='m/s')
-        self.add_input('u', value=np.ones(nn), desc='control', units=None)
+        self.add_input('x', val=np.ones(nn),desc='position of oscilitor',)
+        self.add_input('x0',val=np.ones(nn),desc='rate of change of x',)
+        self.add_input('u', val=np.ones(nn), desc='control',)
 
         self.add_output('xdot', val=np.ones(nn))
         self.add_output('x0dot', val=np.ones(nn))
@@ -43,7 +43,7 @@ class vanderpolODE(om.ExplicitComponent):
         x = inputs['x']
         u = inputs['u']
 
-        jacobian['x0dot','x0'] = 1-x**2
+        jacobian['x0dot','x0'] = 1-x*x
         jacobian['x0dot','x'] = -2.0 * x * x0 - 1.0
 
         jacobian['Jdot','x0'] = 2.0 * x0
