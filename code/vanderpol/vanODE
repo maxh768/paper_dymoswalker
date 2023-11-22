@@ -3,7 +3,7 @@ import dymos as dm
 import matplotlib.pyplot as plt
 import numpy as np
 
-class vanderpol(om.ExplicitComponent):
+class vanderpolODE(om.ExplicitComponent):
     def initialize(self):
         self.options.declare('num_nodes', types=int)
 

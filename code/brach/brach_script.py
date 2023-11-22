@@ -7,7 +7,8 @@ from dymos.examples.plotting import plot_results
 ## solving the brach probelm with collocation
 
 p = om.Problem(model=om.Group())
-p.driver = om.ScipyOptimizeDriver()
+p.driver = om.pyOptSparseDriver()
+p.driver.options['print_results'] = False
 p.driver.declare_coloring()
 
 # trajectory
