@@ -8,6 +8,7 @@ from dymos.examples.plotting import plot_results
 
 p = om.Problem(model=om.Group())
 p.driver = om.pyOptSparseDriver()
+p.driver.options['optimizer'] = 'IPOPT'
 p.driver.options['print_results'] = False
 p.driver.declare_coloring()
 
