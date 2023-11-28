@@ -16,12 +16,12 @@ class dynamics(om.ExplicitComponent):
     def setup(self):
         nn = self.options['num_nodes']
 
-        self.add_input('u1', val=np.zeros(nn),units='none')
-        self.add_input('x1',val=np.zeros(nn),units='none')
-        self.add_input('x2',val=np.zeros(nn),units='none')
+        self.add_input('u1',val=3, shape=(nn,),units='none')
+        self.add_input('x1',shape=(nn,),units='none')
+        self.add_input('x2',shape=(nn,),units='none')
 
-        self.add_output('x1dot', val=np.zeros(nn),units='none')
-        self.add_output('x2dot',val=np.zeros(nn),units='none')
+        self.add_output('x1dot', shape=(nn,),units='none')
+        self.add_output('x2dot',shape=(nn,),units='none')
 
         self.declare_partials(of='x1dot', wrt='x2',val=1, rows=arange, cols=arange)
         self.declare_partials(of='x2dot', wrt='x1',val=2, rows=arange, cols=arange)
@@ -34,5 +34,17 @@ class dynamics(om.ExplicitComponent):
 
         outputs['x1dot'] = x2+u1
         outputs['x2dot'] = 2*x1 - x2
-    
+
+class feedback():
+
+    def initizize(self):
+        self.options.declare('num_nodes', default=1, desc='number of nodes to be evaluated')
+
+    def setup(self):
+        self.add_input('x1', shape=(nn,), units='none')
+        self.add_input('x2', shape=(nn,), units='none')
+        self.add_input('u1',val=3, shape=(nn,), units='none')
+
+        self.add_input('K', shape=(1, 2))
+      
     
