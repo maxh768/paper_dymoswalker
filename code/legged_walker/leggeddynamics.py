@@ -4,14 +4,14 @@ import numpy as np
 import openmdao.api as om
 
 
-class lockedKneeDynamics(om.Group):
+class lockedKneeDynamics(om.ExplicitComponent):
     
     def initialize(self):
-        self.options.declare('num_nodes')
+        self.options.declare('num_nodes', types=int)
         self.options.declare('g', default=9.81, desc='gravity constant')
 
     def setup(self):
-        nn = self.options('num_nodes')
+        nn = self.options['num_nodes']
 
         # inputs
         self.add_input('L', shape=(1,),units='m',desc="length of one leg") 
@@ -41,9 +41,13 @@ class lockedKneeDynamics(om.Group):
         self.add_output('q2_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
 
         #partials
-        """ 
-        To do
-        """
+        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot',], method='cs', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='fd', step=1e-6)
+
+        self.declare_partials(of=['*'], wrt=['a1','b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_coloring(wrt=['a1','b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['a1','b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
 
         def compute(self, inputs, outputs):
             g = self.options['g']
@@ -65,11 +69,11 @@ class lockedKneeDynamics(om.Group):
 
             # matrix components
             H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*(L**2)
-            H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1))
+            H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1)) #
             H22 = m_t*b2**2 + m_s*(lt + b1)**2
-            h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2))
-            G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1)
-            G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2)
+            h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2)) #
+            G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1) #
+            G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2) #
 
             K = 1 / (H11*H22 - H12*H12) # inverse constant
 
@@ -77,4 +81,36 @@ class lockedKneeDynamics(om.Group):
             outputs['q2_dotdot'] = -H11*K*h*q1_dot*q1_dot - H12*K*h*q2_dot*q2_dot - (-H12*K*G1 + H11*K*G2)
 
         def compute_partials(self):
-            """ to do """
+            """ to do maybe """
+            
+
+def check_partials():
+    nn = 3
+
+    p = om.Problem()
+    p.model.add_subsystem('dynamics', lockedKneeDynamics(num_nodes=nn,),promotes=['*'])
+
+    p.model.set_input_defaults('L', val=1, units='m')
+    p.model.set_input_defaults('a1', val=0.375, units='m')
+    p.model.set_input_defaults('b1', val=0.125, units='m')
+    p.model.set_input_defaults('a2', val=0.175, units='m')
+    p.model.set_input_defaults('b2', val='0.325', units='m')
+    p.model.set_input_defaults('m_H', val=0.5, units='kg')
+    p.model.set_input_defaults('m_t', val=0.5, units='kg')
+    p.model.set_input_defaults('m_s', val=0.05, units='kg')
+
+    p.model.set_input_defaults('q1', val=np.random.random(nn))
+    p.model.set_input_defaults('q1_dot', val=np.random.random(nn))
+    p.model.set_input_defaults('q2', val=np.random.random(nn))
+    p.model.set_input_defaults('q2_dot', val=np.random.random(nn))
+
+
+    # check partials
+    p.setup(check=True)
+    p.run_model()
+    #om.n2(p)
+    p.check_partials(compact_print=True)
+
+if __name__ == '__main__':
+    check_partials()
+    
