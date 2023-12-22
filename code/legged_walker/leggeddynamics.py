@@ -34,6 +34,9 @@ class lockedKneeDynamics(om.ExplicitComponent):
         self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
         self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
 
+        # applied torque
+        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
+
 
         # outputs
         # angular accelerations of q1 and q1 (state rates)
@@ -41,47 +44,90 @@ class lockedKneeDynamics(om.ExplicitComponent):
         self.add_output('q2_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
 
         #partials
-        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot',], method='cs', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot', 'tau'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
         self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='cs', show_summary=False)
         self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='fd', step=1e-6)
 
-        self.declare_partials(of=['*'], wrt=['a1','b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['a1','b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['a1','b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
+        self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
 
-        def compute(self, inputs, outputs):
-            g = self.options['g']
-            L = inputs['L']
-            a1 = inputs['a1']
-            a2 = inputs['a2']
-            b1 = inputs['b1']
-            b2 = inputs['b2']
-            m_H = inputs['m_H']
-            m_t = inputs['m_t']
-            m_s = inputs['m_s']
-            q1 = inputs['q1']
-            q2 = inputs['q2']
-            q1_dot = inputs['q1_dot']
-            q2_dot = inputs['q2_dot']
+    def compute(self, inputs, outputs):
+        g = self.options['g']
+        L = inputs['L']
+        a1 = inputs['a1']
+        a2 = inputs['a2']
+        b1 = inputs['b1']
+        b2 = inputs['b2']
+        m_H = inputs['m_H']
+        m_t = inputs['m_t']
+        m_s = inputs['m_s']
+        q1 = inputs['q1']
+        q2 = inputs['q2']
+        q1_dot = inputs['q1_dot']
+        q2_dot = inputs['q2_dot']
+        tau = inputs['tau']
 
-            ls = a1 + b1
-            lt = a2 + b2
+        ls = a1 + b1
+        lt = a2 + b2
 
-            # matrix components
-            H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*(L**2)
-            H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1)) #
-            H22 = m_t*b2**2 + m_s*(lt + b1)**2
-            h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2)) #
-            G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1) #
-            G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2) #
+        # mtrix components
+        H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*(L**2)
+        H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1)) #
+        H22 = m_t*b2**2 + m_s*(lt + b1)**2
+        h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2)) #
+        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1) #
+        G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2) #
 
-            K = 1 / (H11*H22 - H12*H12) # inverse constant
+        K = 1 / (H11*H22 - H12*H12) # inverse constant
 
-            outputs['q1_dotdot'] = H12*K*h*q1_dot*q1_dot + H22*K*h*q2_dot*q2_dot - (H22*K*G1 - H12*K*G2)
-            outputs['q2_dotdot'] = -H11*K*h*q1_dot*q1_dot - H12*K*h*q2_dot*q2_dot - (-H12*K*G1 + H11*K*G2)
+        outputs['q1_dotdot'] = H12*K*h*q1_dot**2 + H22*K*h*q2_dot**2 - (H22*K*G1 - H12*K*G2) + ((-H22*K - H12*K)*tau)
+        outputs['q2_dotdot'] = -H11*K*h*q1_dot**2 - H12*K*h*q2_dot**2 - (-H12*K*G1 + H11*K*G2) + ((H12*K + H11*K)*tau)
 
-        def compute_partials(self):
-            """ to do maybe """
+    def compute_partials(self, inputs, partials):
+        """
+        this does not do anything at the moment
+
+        """
+
+        g = self.options['g']
+        L = inputs['L']
+        a1 = inputs['a1']
+        a2 = inputs['a2']
+        b1 = inputs['b1']
+        b2 = inputs['b2']
+        m_H = inputs['m_H']
+        m_t = inputs['m_t']
+        m_s = inputs['m_s']
+        q1 = inputs['q1']
+        q2 = inputs['q2']
+        q1_dot = inputs['q1_dot']
+        q2_dot = inputs['q2_dot']
+        tau = inputs['tau']
+
+        ls = a1 + b1
+        lt = a2 + b2
+
+        H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*(L**2)
+        H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1)) #
+        H22 = m_t*b2**2 + m_s*(lt + b1)**2
+        h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2)) #
+        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1) #
+        G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2)
+
+        K = 1 / (H11*H22 - H12*H12)
+
+        # partials of terms wrt q1 q2
+        H12_dq1 = -(m_t*b2 + m_s*(lt + b1))*L*np.sin(q2-q1)
+        H12_dq2 = -(m_t*b2 + m_s*(lt + b1))*L*np.sin(q2-q1)*(-1)
+        h_dq1 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q1-q2))
+        h_dq2 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q1-q2))*(-1)
+        G1_dq1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.cos(q1)
+        G2_dq2 =  (m_t*b2 + m_s*(lt + b1))*g*np.cos(q2)
+            
+
+        #partials['q1_dotdot', 'q1'] = K*q1_dot*q1_dot*(H12*h_dq1 + h*H12_dq1) + H22*K*h_dq1*q2_dot*q2_dot - (H22*K*G1_dq1) + (-H12_dq1*K*tau)
+        # jacobian['q1_dotdot', 'q2'] = 
             
 
 def check_partials():
@@ -103,6 +149,7 @@ def check_partials():
     p.model.set_input_defaults('q1_dot', val=np.random.random(nn))
     p.model.set_input_defaults('q2', val=np.random.random(nn))
     p.model.set_input_defaults('q2_dot', val=np.random.random(nn))
+    p.model.set_input_defaults('tau', val=np.random.random(nn))
 
 
     # check partials
