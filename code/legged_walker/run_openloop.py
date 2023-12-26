@@ -97,7 +97,7 @@ def main():
                   ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:q2_dot','time','q2_dot'),
                   ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.show()
+    plt.savefig('openloop_lockedknee.pdf', bbox_inches='tight')
 
 
 if __name__ == '__main__':
