@@ -1,7 +1,7 @@
 import numpy as np
 import openmdao.api as om
 import dymos as dm
-from leggeddynamics import lockedKneeDynamics
+from leggeddynamics import kneedWalker
 import matplotlib.pyplot as plt
 from dymos.examples.plotting import plot_results
 
@@ -34,7 +34,7 @@ def main():
     p.driver.declare_coloring()
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
-    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=lockedKneeDynamics, transcription=dm.GaussLobatto(num_segments=10)))
+    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=10)))
 
     lockphase.set_time_options(fix_initial=True, fix_duration=True, duration_val=duration, duration_ref=duration, units='s') # set time of simulation
 
@@ -43,6 +43,7 @@ def main():
     lockphase.add_state('q1_dot', fix_initial=True, lower=-20, upper = 20, rate_source='q1_dotdot', units='rad/s')
     lockphase.add_state('q2', fix_initial=True, lower = -4, upper = 4, rate_source='q2_dot', units='rad')
     lockphase.add_state('q2_dot', fix_initial=True, lower = -20, upper = 20,  rate_source='q2_dotdot', units='rad/s')
+    lockphase.add_state('costrate', fix_initial=True, rate_source='cost_rate', ref=50)
 
     lockphase.add_control('tau', fix_initial=False, units='N*m') # add control torque
 
@@ -63,7 +64,7 @@ def main():
     lockphase.add_boundary_constraint('q2_dot', loc='final', equals=states_final['q2_dot'], units='rad/s')
 
     # add objective - TO DO - add cost function and obj
-    lockphase.add_objective('tau', loc='final')
+    #lockphase.add_objective('cost', loc='final')
 
     p.setup(check=True)
 
@@ -97,7 +98,7 @@ def main():
                   ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:q2_dot','time','q2_dot'),
                   ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.savefig('openloop_lockedknee.pdf', bbox_inches='tight')
+    plt.savefig('openloop_kneedwalker.pdf', bbox_inches='tight')
 
 
 if __name__ == '__main__':

@@ -3,11 +3,24 @@
 import numpy as np
 import openmdao.api as om
 
+class kneedWalker(om.Group):
+
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+        self.options.declare('states_ref', types=dict)
+
+    def setup(self):
+        nn=self.options['num_nodes']
+
+        input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'q1', 'q2', 'q1_dot', 'q2_dot', 'm_H', 'm_t', 'm_s', 'tau']
+        self.add_subsystem('lockedknee', lockedKneeDynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
+        self.add_subsystem('cost', CostFunc(num_nodes=nn, ), promotes_inputs=['m_H', 'm_t', 'm_s', 'tau'], promotes_outputs=['*'])
 
 class lockedKneeDynamics(om.ExplicitComponent):
     
     def initialize(self):
         self.options.declare('num_nodes', types=int)
+        self.options.declare('states_ref', types=dict)
         self.options.declare('g', default=9.81, desc='gravity constant')
 
     def setup(self):
@@ -128,13 +141,47 @@ class lockedKneeDynamics(om.ExplicitComponent):
 
         #partials['q1_dotdot', 'q1'] = K*q1_dot*q1_dot*(H12*h_dq1 + h*H12_dq1) + H22*K*h_dq1*q2_dot*q2_dot - (H22*K*G1_dq1) + (-H12_dq1*K*tau)
         # jacobian['q1_dotdot', 'q2'] = 
-            
+
+class CostFunc(om.ExplicitComponent):
+    # Computes the Cost
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+        #self.options.declare("states_ref", default=dict)
+
+    def setup(self):
+        nn = self.options['num_nodes']
+        self.add_input('m_H', shape=(1,),units='kg', desc='hip mass')
+        self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
+        self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
+        self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
+
+        self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
+
+        self.declare_partials(of=['costrate'], wrt=['m_H', 'm_t', 'm_s', 'tau'], method='cs')
+        self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau'], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau'], method='fd', step=1e-6)
+
+    def compute(self, inputs, outputs,):
+        tau = inputs['tau']
+        m_H = inputs['m_H']
+        m_t = inputs['m_t']
+        m_s = inputs['m_s']
+
+        m_total = m_H + m_t + m_s
+
+        outputs['costrate'] = m_total**2 + tau**2
+
+    def compute_partials(self, inputs, partials,):
+        # doesnt do anything
+        m_H = inputs['m_H']
+        
+   
 
 def check_partials():
     nn = 3
 
     p = om.Problem()
-    p.model.add_subsystem('dynamics', lockedKneeDynamics(num_nodes=nn,),promotes=['*'])
+    p.model.add_subsystem('dynamics', kneedWalker(num_nodes=nn,),promotes=['*'])
 
     p.model.set_input_defaults('L', val=1, units='m')
     p.model.set_input_defaults('a1', val=0.375, units='m')
