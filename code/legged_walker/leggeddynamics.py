@@ -14,7 +14,7 @@ class kneedWalker(om.Group):
 
         input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'q1', 'q2', 'q1_dot', 'q2_dot', 'm_H', 'm_t', 'm_s', 'tau']
         self.add_subsystem('lockedknee', lockedKneeDynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
-        self.add_subsystem('cost', CostFunc(num_nodes=nn, ), promotes_inputs=['m_H', 'm_t', 'm_s', 'tau'], promotes_outputs=['*'])
+        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['*'], promotes_outputs=['*'])
 
 class lockedKneeDynamics(om.ExplicitComponent):
     
@@ -146,7 +146,7 @@ class CostFunc(om.ExplicitComponent):
     # Computes the Cost
     def initialize(self):
         self.options.declare('num_nodes', types=int)
-        #self.options.declare("states_ref", default=dict)
+        self.options.declare("states_ref", types=dict)
 
     def setup(self):
         nn = self.options['num_nodes']
@@ -154,18 +154,20 @@ class CostFunc(om.ExplicitComponent):
         self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
         self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
         self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
+        
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
 
-        self.declare_partials(of=['costrate'], wrt=['m_H', 'm_t', 'm_s', 'tau'], method='cs')
-        self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau'], method='fd', step=1e-6)
+        self.declare_partials(of=['costrate'], wrt=['m_H', 'm_t', 'm_s', 'tau',], method='cs')
+        self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
 
     def compute(self, inputs, outputs,):
         tau = inputs['tau']
         m_H = inputs['m_H']
         m_t = inputs['m_t']
         m_s = inputs['m_s']
+
 
         m_total = m_H + m_t + m_s
 
