@@ -142,6 +142,59 @@ class lockedKneeDynamics(om.ExplicitComponent):
         #partials['q1_dotdot', 'q1'] = K*q1_dot*q1_dot*(H12*h_dq1 + h*H12_dq1) + H22*K*h_dq1*q2_dot*q2_dot - (H22*K*G1_dq1) + (-H12_dq1*K*tau)
         # jacobian['q1_dotdot', 'q2'] = 
 
+
+"""
+3 link dynamics uses q1 q2 and q3
+"""
+class threeLinkDynamics(om.ExplicitComponent):
+    # phase with three link dynamics
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+        self.options.declare('states_ref')
+
+    def setup(self):
+        nn = self.options['num_nodes']
+
+        # inputs
+        self.add_input('L', shape=(1,),units='m',desc="length of one leg") 
+
+        # length paramters
+        self.add_input('a1',shape=(1,),units='m',desc='shank length below point mass')
+        self.add_input('b1', shape=(1,),units='m', desc='shank length above point mass')
+
+        self.add_input('a2', shape=(1,),units='m', desc='thigh length below points mass')
+        self.add_input('b2', shape=(1,),units='m', desc='thigh length above point mass')
+
+        # q1, q2, and q3
+        self.add_input('q1', shape=(nn,),units='rad', desc='q1 angle')
+        self.add_input('q2', shape=(nn,),units='rad', desc='q2 angle')
+        self.add_input('q1_dot', shape=(nn,),units='rad/s', desc='q1 angular velocity')
+        self.add_input('q2_dot', shape=(nn,),units='rad/s', desc='q2 anglular velocity')
+        self.add_input('q3', shape=(nn,), units='rad', desc='q3 angle')
+        self.add_input('q3_dot', shape=(nn,), units='rad/s', desc='q3 anglular velocity')
+        
+
+        # masses
+        self.add_input('m_H', shape=(1,),units='kg', desc='hip mass')
+        self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
+        self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
+
+        # applied torque
+        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
+
+        # outputs
+        # angular accelerations of q1 q2 q3 (state rates)
+        self.add_output('q1_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q1')
+        self.add_output('q2_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
+        self.add_output('q3_dotdot', shape=(nn,), units='rad/s**2', desc='angular acc of q3')
+
+    def compute(self, inputs, outputs):
+        L = inputs['L']
+        ##
+
+
+
+
 class CostFunc(om.ExplicitComponent):
     # Computes the Cost
     def initialize(self):
