@@ -34,9 +34,13 @@ def main():
     p.driver.declare_coloring()
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
-    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=7), ode_init_kwargs={'states_ref': states_final}))
+    #threelink = traj.add_phase('threelink', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=100, order=3), ode_init_kwargs={'states_ref': states_final}))
 
-    lockphase.set_time_options(fix_initial=True, fix_duration=True, duration_val=duration, duration_ref=duration, units='s') # set time of simulation
+    #threelink.set_time_options(fix_initial=True, fix_duration=True, units='s')
+
+    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=50, order=3), ode_init_kwargs={'states_ref': states_final}))
+
+    lockphase.set_time_options(fix_initial=True, fix_duration=True, duration_val=duration, duration_ref=duration, units='s') # set time of simulation    
 
     #states
     lockphase.add_state('q1', fix_initial=True, lower = -4, upper = 4, rate_source='q1_dot', units='rad')
@@ -81,7 +85,7 @@ def main():
     # need to add other phases
 
     # simulate and run problem
-    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 7})
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 3})
 
     # print values - since there is no objective atm this doesnt mean anything
     #print('L:', p.get_val('L', units='m'))

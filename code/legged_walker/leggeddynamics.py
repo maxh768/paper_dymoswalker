@@ -16,7 +16,7 @@ class kneedWalker(om.Group):
 
         input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'q1', 'q2', 'q1_dot', 'q2_dot', 'm_H', 'm_t', 'm_s', 'tau']
         self.add_subsystem('lockedknee', lockedKneeDynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
-        self.add_subsyts
+        #self.add_subsystem('threeLink', threeLinkDynamics(num_nodes=nn, ), promotes_inputs=['*'], promotes_outputs=['*'])
         self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['*'], promotes_outputs=['*'])
 
 class lockedKneeDynamics(om.ExplicitComponent):
@@ -228,9 +228,9 @@ class threeLinkDynamics(om.ExplicitComponent):
         H13 = -m_s*b1*L*np.cos(q3-q1)
         H22 = m_t*b2**2 + m_s*lt**2
         H23 = m_s*lt*b1*np.cos(q3-q2)
-        H33 = m_s*b1**2
+        H33 = m_s*b1**2 # components of symmetric H matrix
 
-        h122 = -(m_t*b2 + m_s*lt)*L*np.sin(q1-q2)
+        h122 = -(m_t*b2 + m_s*lt)*L*np.sin(q1-q2) # components of B matrix
         h133 = -m_s*b1*L*np.sin(q1-q3)
         h211 = -h122
         h233 = m_s*lt*b1*np.sin(q3-q2)
@@ -241,12 +241,23 @@ class threeLinkDynamics(om.ExplicitComponent):
         G2 = (m_t*b2 + m_s*lt)*g*np.sin(q2)
         G3 = m_s*b1*g*np.sin(q3)
 
-        H = np.array([H11, H12, H13], [H12, H22, H23], [H13, H23, H33])
-        B = np.array([0, h122*q2_dot, h133*q3_dot],[h211*q1_dot, 0, h233*q3_dot], [h311*q1_dot, h322*q2_dot, 0])
-        G = np.array([G1], [G2], [G3])
-        R = np.array([-1], [1], [1]) # control matrix, come back and check...
+        DH = H11*(H22*H33-H23**2) + H12*(H13*H23 - H12*H33) + H13*(H12*H23 - H22*H13) # determinite of matrix H
 
-        qdotv = np.array([q1_dot], [q2_dot], [q3_dot])
+        # components of adjoint of H matrix
+        A11 = H22*H33 - H23*H23; A12 = -(H12*H33 - H23*H13); A13 = H12*H23 - H13*H22; A21 = A12; A22 = H11*H33 - H13*H13; A23 = -(H11*H23 - H12*H13)
+        A31 = A13; A32 = A23; A33 = H11*H22 - H12*H12
+
+        # calcuate rates
+        outputs['q1_dotdot'] = (-((A12*h211*q1_dot + A13*h311*q1_dot)*q1_dot + (A11*h122*q2_dot + A13*h322*q2_dot)*q2_dot + (A11*h133*q3_dot + A12*h233*q3_dot)*q3_dot + A11*G1 + A12*G2 + A13*G3) - A11 + A12 + A13)*(1/DH)
+        outputs['q2_dotdot'] = (-((A22*h211*q1_dot + A23*h311*q1_dot)*q1_dot + (A21*h122*q2_dot + A23*h322*q2_dot)*q2_dot + (A21*h133*q3_dot + A22*h233*q3_dot)*q3_dot + A21*G1 + A22*G2 + A23*G3) + -A21 + A22 + A23)*(1/DH)
+        outputs['q3_dotdot'] = -(((A32*h211*q1_dot + A33*h311*q1_dot)*q1_dot + (A31*h122*q2_dot + A33*h322*q2_dot)*q2_dot + (A31*h133*q3_dot + A32*h233*q3_dot)*q3_dot +A31*G1 + A32*G2 + A33*G3) + -A31 + A32 + A33)*(1/DH)
+
+        """ H = np.array([[H11, H12, H13], [H12, H22, H23], [H13, H23, H33]], dtype=float)
+        B = np.array([[0, h122*q2_dot, h133*q3_dot],[h211*q1_dot, 0, h233*q3_dot], [h311*q1_dot, h322*q2_dot, 0]], dtype=float)
+        G = np.array([[G1], [G2], [G3]], ddtype=float)
+        R = np.array([[-1], [1], [1]], dtype=float) # control matrix, come back and check...
+
+        qdotv = np.array([[q1_dot], [q2_dot], [q3_dot]], dtype=float)
         
         hinv = inv(H)
 
@@ -254,7 +265,7 @@ class threeLinkDynamics(om.ExplicitComponent):
 
         outputs['q1_dotdot'] = qvector[0]
         outputs['q2_dotdot'] = qvector[1]
-        outputs['q3_dotdot'] = qvector[2]
+        outputs['q3_dotdot'] = qvector[2]   """
 
     def computs_partials(self, inputs, outputs):
         """ this does not do anything """
@@ -293,7 +304,7 @@ class CostFunc(om.ExplicitComponent):
         
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
-
+        
         self.declare_partials(of=['costrate'], wrt=['m_H', 'm_t', 'm_s', 'tau',], method='cs')
         self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
         self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
@@ -319,7 +330,7 @@ def check_partials():
     nn = 3
     states_ref = {'q1': 10*(np.pi / 180), 'q1_dot': 0, 'q2': 20*(np.pi / 180), 'q2_dot': 0}
     p = om.Problem()
-    p.model.add_subsystem('dynamics', kneedWalker(num_nodes=nn, states_ref=states_ref),promotes=['*'])
+    p.model.add_subsystem('dynamics', threeLinkDynamics(num_nodes=nn, states_ref=states_ref),promotes=['*'])
 
     p.model.set_input_defaults('L', val=1, units='m')
     p.model.set_input_defaults('a1', val=0.375, units='m')
@@ -335,6 +346,8 @@ def check_partials():
     p.model.set_input_defaults('q2', val=np.random.random(nn))
     p.model.set_input_defaults('q2_dot', val=np.random.random(nn))
     p.model.set_input_defaults('tau', val=np.random.random(nn))
+    p.model.set_input_defaults('q3', val=np.random.random(nn))
+    p.model.set_input_defaults('q3_dot', val=np.random.random(nn))
 
 
     # check partials
