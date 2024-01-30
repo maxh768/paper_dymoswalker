@@ -97,8 +97,8 @@ class lockedKneeDynamics(om.ExplicitComponent):
 
         K = 1 / (H11*H22 - H12*H12) # inverse constant
 
-        outputs['q1_dotdot'] = H12*K*h*q1_dot**2 + H22*K*h*q2_dot**2 - (H22*K*G1 - H12*K*G2) + ((-H22*K - H12*K)*tau)
-        outputs['q2_dotdot'] = -H11*K*h*q1_dot**2 - H12*K*h*q2_dot**2 - (-H12*K*G1 + H11*K*G2) + ((H12*K + H11*K)*tau)
+        outputs['q1_dotdot'] = H12*K*h*q1_dot + H22*K*h*q2_dot - (H22*K*G1 - H12*K*G2) + ((-H22*K - H12*K)*tau)
+        outputs['q2_dotdot'] = -H11*K*h*q1_dot - H12*K*h*q2_dot - (-H12*K*G1 + H11*K*G2) + ((H12*K + H11*K)*tau)
 
     def compute_partials(self, inputs, partials):
         """
