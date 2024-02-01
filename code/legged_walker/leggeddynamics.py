@@ -368,7 +368,7 @@ def check_partials():
     p.setup(check=True)
     p.run_model()
     #om.n2(p)
-    p.check_partials(compact_print=True)
+    p.check_partials(method='cs',compact_print=True)
 
 if __name__ == '__main__':
     check_partials()

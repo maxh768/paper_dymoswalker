@@ -31,7 +31,7 @@ def main():
     p.driver = om.pyOptSparseDriver()
     p.driver.options['optimizer'] = 'IPOPT'
     p.driver.options['print_results'] = False
-    p.driver.declare_coloring()
+    p.driver.declare_coloring(tol=1.0E-12, orders=None)
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
     #threelink = traj.add_phase('threelink', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=100, order=3), ode_init_kwargs={'states_ref': states_final}))
@@ -85,7 +85,7 @@ def main():
     # need to add other phases
 
     # simulate and run problem
-    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 5})
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
 
     # print values - since there is no objective atm this doesnt mean anything
     #print('L:', p.get_val('L', units='m'))
@@ -108,6 +108,7 @@ def main():
                   ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
     plt.savefig('openloop_kneedwalker.pdf', bbox_inches='tight')
+
 
 
 if __name__ == '__main__':
