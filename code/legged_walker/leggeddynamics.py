@@ -60,13 +60,13 @@ class lockedKneeDynamics(om.ExplicitComponent):
         self.add_output('q2_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
 
         #partials
-        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot', 'tau'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='fd', step=1e-6)
+        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        #self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='cs', show_summary=False)
+        #self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='fd', step=1e-6)
 
-        self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
+        #self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
+        #self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
+        #self.set_check_partial_options(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
 
     def compute(self, inputs, outputs):
         g = self.options['g']
@@ -140,10 +140,24 @@ class lockedKneeDynamics(om.ExplicitComponent):
         h_dq2 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q1-q2))*(-1)
         G1_dq1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.cos(q1)
         G2_dq2 =  (m_t*b2 + m_s*(lt + b1))*g*np.cos(q2)
+
+        K_dq1 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq1)
+        K_dq2 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq2)
             
 
-        #partials['q1_dotdot', 'q1'] = K*q1_dot*q1_dot*(H12*h_dq1 + h*H12_dq1) + H22*K*h_dq1*q2_dot*q2_dot - (H22*K*G1_dq1) + (-H12_dq1*K*tau)
+        partials['q1_dotdot', 'q1'] = (H12_dq1*K*h*q1_dot + H12*K_dq1*h*q1_dot + h_dq1*H12*K*q1_dot) + (H22*K_dq1*h*q2_dot + H22*q2_dot*K*h_dq1) - (H22*K_dq1*G1 + H22*K*G1_dq1) + (H12_dq1*K*G2 + H12*K_dq1*G2) - (H22*K_dq1*tau) - (H12*K_dq1 + H12_dq1*K)*tau
+        partials['q1_dotdot', 'q2'] = (H12_dq2*K*h*q1_dot + H12*K_dq2*h*q1_dot + H12*K*h_dq2*q1_dot) + (H22*K_dq2*h*q2_dot + H22*q2_dot*K*h_dq2) - (H22*K_dq2*G1) + (H12_dq2*K*G2 + H12*K_dq2*G2 + H12*K*G2_dq2) - (H22*K_dq2*tau) - (H12*K_dq2 + H12_dq2*K)*tau
+        partials['q1_dotdot', 'q1_dot'] = H12*K*h
+        partials['q1_dotdot', 'q2_dot'] = H22*K*h
+        partials['q1_dotdot', 'tau'] = -H22*K - H12*K
+
+        partials['q2_dotdot', 'q1'] = (-H11*K_dq1*h*q1_dot - H11*K*h_dq1*q1_dot) - (H12_dq1*K*h*q2_dot + H12*K_dq1*h*q2_dot + H12*K*h_dq1*q2_dot) + (H12_dq1*K*G1 + H12*K_dq1*G1 + H12*K*G1_dq1) - (H11*G2*K_dq1) + (H12_dq1*K + H12*K_dq1)*tau + (H11*K_dq1)*tau
+        partials['q2_dotdot', 'q2'] = (-H11*K_dq2*h*q1_dot - H11*K*h_dq2*q1_dot) - (H12_dq2*K*h*q2_dot + H12*K_dq2*h*q2_dot + H12*K*h_dq2*q2_dot) + (H12_dq2*K*G1 + H12*K_dq2*G1) - (H11*G2*K_dq2 + H11*G2_dq2*K) + (H12_dq2*K + H12*K_dq2)*tau + (H11*K_dq2)*tau
+        partials['q2_dotdot', 'q1_dot'] = -H11*K*h
+        partials['q2_dotdot', 'q2_dot'] = -H12*K*h
+        partials['q2_dotdot', 'tau'] = H12*K + H11*K
         # jacobian['q1_dotdot', 'q2'] = 
+
 
 
 """
@@ -330,24 +344,24 @@ def check_partials():
     nn = 3
     states_ref = {'q1': 10*(np.pi / 180), 'q1_dot': 0, 'q2': 20*(np.pi / 180), 'q2_dot': 0}
     p = om.Problem()
-    p.model.add_subsystem('dynamics', threeLinkDynamics(num_nodes=nn, states_ref=states_ref),promotes=['*'])
+    p.model.add_subsystem('dynamics', kneedWalker(num_nodes=nn, states_ref=states_ref),promotes=['*'])
 
-    p.model.set_input_defaults('L', val=1, units='m')
+    """p.model.set_input_defaults('L', val=1, units='m')
     p.model.set_input_defaults('a1', val=0.375, units='m')
     p.model.set_input_defaults('b1', val=0.125, units='m')
     p.model.set_input_defaults('a2', val=0.175, units='m')
     p.model.set_input_defaults('b2', val='0.325', units='m')
     p.model.set_input_defaults('m_H', val=0.5, units='kg')
     p.model.set_input_defaults('m_t', val=0.5, units='kg')
-    p.model.set_input_defaults('m_s', val=0.05, units='kg')
+    p.model.set_input_defaults('m_s', val=0.05, units='kg')"""
 
     p.model.set_input_defaults('q1', val=np.random.random(nn))
     p.model.set_input_defaults('q1_dot', val=np.random.random(nn))
     p.model.set_input_defaults('q2', val=np.random.random(nn))
     p.model.set_input_defaults('q2_dot', val=np.random.random(nn))
     p.model.set_input_defaults('tau', val=np.random.random(nn))
-    p.model.set_input_defaults('q3', val=np.random.random(nn))
-    p.model.set_input_defaults('q3_dot', val=np.random.random(nn))
+    #p.model.set_input_defaults('q3', val=np.random.random(nn))
+    #p.model.set_input_defaults('q3_dot', val=np.random.random(nn))
 
 
     # check partials

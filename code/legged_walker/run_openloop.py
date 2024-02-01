@@ -78,14 +78,14 @@ def main():
     p.set_val('traj.lockphase.states:q1_dot', lockphase.interp(ys=[states_init['q1_dot'], states_final['q1_dot']], nodes='state_input'), units='rad/s')
     p.set_val('traj.lockphase.states:q2', lockphase.interp(ys=[states_init['q2'], states_final['q2']], nodes='state_input'), units='rad')
     p.set_val('traj.lockphase.states:q2_dot', lockphase.interp(ys=[states_init['q2_dot'], states_final['q2_dot']], nodes='state_input'), units='rad/s')
-    p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration], ys=[0, 5000, 10000], nodes='state_input'))
+    p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration], ys=[0, 500, 1000], nodes='state_input'))
     p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m')
 
 
     # need to add other phases
 
     # simulate and run problem
-    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 3})
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 5})
 
     # print values - since there is no objective atm this doesnt mean anything
     #print('L:', p.get_val('L', units='m'))
