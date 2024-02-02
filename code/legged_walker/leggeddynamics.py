@@ -16,7 +16,7 @@ class kneedWalker(om.Group):
 
         input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'q1', 'q2', 'q1_dot', 'q2_dot', 'm_H', 'm_t', 'm_s', 'tau']
         self.add_subsystem('lockedknee', lockedKneeDynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
-        #self.add_subsystem('threeLink', threeLinkDynamics(num_nodes=nn, ), promotes_inputs=['*'], promotes_outputs=['*'])
+        self.add_subsystem('threeLink', threeLinkDynamics(num_nodes=nn, ), promotes_inputs=['*'], promotes_outputs=['*'])
         self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['*'], promotes_outputs=['*'])
 
 class lockedKneeDynamics(om.ExplicitComponent):
@@ -101,10 +101,7 @@ class lockedKneeDynamics(om.ExplicitComponent):
         outputs['q2_dotdot'] = -H11*K*h*q1_dot - H12*K*h*q2_dot - (-H12*K*G1 + H11*K*G2) + ((H12*K + H11*K)*tau)
 
     def compute_partials(self, inputs, partials):
-        """
-        this does not do anything at the moment
-
-        """
+        # computes analytical partials 
 
         g = self.options['g']
         L = inputs['L']
@@ -202,18 +199,18 @@ class threeLinkDynamics(om.ExplicitComponent):
 
         # outputs
         # angular accelerations of q1 q2 q3 (state rates)
-        self.add_output('q1_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q1')
-        self.add_output('q2_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
-        self.add_output('q3_dotdot', shape=(nn,), units='rad/s**2', desc='angular acc of q3')
+        self.add_output('q1_dotdot_3', shape=(nn,), units='rad/s**2',desc='angular acceleration of q1')
+        self.add_output('q2_dotdot_3', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
+        self.add_output('q3_dotdot_3', shape=(nn,), units='rad/s**2', desc='angular acc of q3')
 
         ## partials
         self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot', 'tau', 'q3', 'q3_dot'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
         self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot', 'q3', 'q3_dot'], method='cs', show_summary=False)
         self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot', 'q3', 'q3_dot'], method='fd', step=1e-6)
 
-        self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
+        #self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
+        #self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
+        #self.set_check_partial_options(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
     
 
     def compute(self, inputs, outputs):
@@ -262,9 +259,9 @@ class threeLinkDynamics(om.ExplicitComponent):
         A31 = A13; A32 = A23; A33 = H11*H22 - H12*H12
 
         # calcuate rates
-        outputs['q1_dotdot'] = (-((A12*h211*q1_dot + A13*h311*q1_dot)*q1_dot + (A11*h122*q2_dot + A13*h322*q2_dot)*q2_dot + (A11*h133*q3_dot + A12*h233*q3_dot)*q3_dot + A11*G1 + A12*G2 + A13*G3) - A11 + A12 + A13)*(1/DH)
-        outputs['q2_dotdot'] = (-((A22*h211*q1_dot + A23*h311*q1_dot)*q1_dot + (A21*h122*q2_dot + A23*h322*q2_dot)*q2_dot + (A21*h133*q3_dot + A22*h233*q3_dot)*q3_dot + A21*G1 + A22*G2 + A23*G3) + -A21 + A22 + A23)*(1/DH)
-        outputs['q3_dotdot'] = -(((A32*h211*q1_dot + A33*h311*q1_dot)*q1_dot + (A31*h122*q2_dot + A33*h322*q2_dot)*q2_dot + (A31*h133*q3_dot + A32*h233*q3_dot)*q3_dot +A31*G1 + A32*G2 + A33*G3) + -A31 + A32 + A33)*(1/DH)
+        outputs['q1_dotdot_3'] = (-((A12*h211*q1_dot + A13*h311*q1_dot)*q1_dot + (A11*h122*q2_dot + A13*h322*q2_dot)*q2_dot + (A11*h133*q3_dot + A12*h233*q3_dot)*q3_dot + A11*G1 + A12*G2 + A13*G3) - A11 + A12 + A13)*(1/DH)
+        outputs['q2_dotdot_3'] = (-((A22*h211*q1_dot + A23*h311*q1_dot)*q1_dot + (A21*h122*q2_dot + A23*h322*q2_dot)*q2_dot + (A21*h133*q3_dot + A22*h233*q3_dot)*q3_dot + A21*G1 + A22*G2 + A23*G3) + -A21 + A22 + A23)*(1/DH)
+        outputs['q3_dotdot_3'] = -(((A32*h211*q1_dot + A33*h311*q1_dot)*q1_dot + (A31*h122*q2_dot + A33*h322*q2_dot)*q2_dot + (A31*h133*q3_dot + A32*h233*q3_dot)*q3_dot +A31*G1 + A32*G2 + A33*G3) + -A31 + A32 + A33)*(1/DH)
 
         """ H = np.array([[H11, H12, H13], [H12, H22, H23], [H13, H23, H33]], dtype=float)
         B = np.array([[0, h122*q2_dot, h133*q3_dot],[h211*q1_dot, 0, h233*q3_dot], [h311*q1_dot, h322*q2_dot, 0]], dtype=float)
@@ -311,38 +308,61 @@ class CostFunc(om.ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        self.add_input('m_H', shape=(1,),units='kg', desc='hip mass')
-        self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
-        self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
+        self.add_input('q3', shape=(nn,),units='rad', desc='q3')
+        self.add_input('q2', shape=(nn,),units='rad', desc='q2')
+        self.add_input('q1', shape=(nn,),units='rad', desc='q1')
         self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
         
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
         
-        self.declare_partials(of=['costrate'], wrt=['m_H', 'm_t', 'm_s', 'tau',], method='cs')
-        self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
+        self.declare_partials(of=['costrate'], wrt=['q1', 'q2', 'q3', 'tau',], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
+        #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
 
     def compute(self, inputs, outputs,):
         tau = inputs['tau']
-        m_H = inputs['m_H']
-        m_t = inputs['m_t']
-        m_s = inputs['m_s']
+        q1 = inputs['q1']
+        q2 = inputs['q2']
+        q3 = inputs['q3']
+        states_ref = self.options['states_ref']
 
+        q1ref = states_ref['q1'] # reference states (final)
+        q2ref = states_ref['q2']
+        q3ref = states_ref['q3']
 
-        m_total = m_H + m_t + m_s
+        # distance of current states from final states
+        dq1 = q1 - q1ref
+        dq2 = q2-q2ref
+        dq3 = q3-q3ref
 
-        outputs['costrate'] = m_total**2 + tau**2
+        outputs['costrate'] = tau**2 + dq1**2 + dq2**2 + dq3**2
 
     def compute_partials(self, inputs, partials,):
-        # doesnt do anything
-        m_H = inputs['m_H']
-        
-   
+        states_ref = self.options['states_ref']
+        tau = inputs['tau']
+        q1 = inputs['q1']
+        q2 = inputs['q2']
+        q3 = inputs['q3']
 
+        q1ref = states_ref['q1'] # reference states (final)
+        q2ref = states_ref['q2']
+        q3ref = states_ref['q3']
+
+        # distance of current states from final states
+        dq1 = q1 - q1ref
+        dq2 = q2-q2ref
+        dq3 = q3-q3ref
+
+        partials['costrate', 'tau'] = 2*tau
+        partials['costrate', 'q1'] = 2*dq1
+        partials['costrate', 'q2'] = 2*dq2
+        partials['costrate', 'q3'] = 2*dq3
+
+        
 def check_partials():
     nn = 3
-    states_ref = {'q1': 10*(np.pi / 180), 'q1_dot': 0, 'q2': 20*(np.pi / 180), 'q2_dot': 0}
+    states_ref = {'q1': 10*(np.pi / 180), 'q1_dot': 0, 'q2': 20*(np.pi / 180), 'q2_dot': 0, 'q3':20*(np.pi / 180)}
     p = om.Problem()
     p.model.add_subsystem('dynamics', kneedWalker(num_nodes=nn, states_ref=states_ref),promotes=['*'])
 
@@ -360,15 +380,15 @@ def check_partials():
     p.model.set_input_defaults('q2', val=np.random.random(nn))
     p.model.set_input_defaults('q2_dot', val=np.random.random(nn))
     p.model.set_input_defaults('tau', val=np.random.random(nn))
-    #p.model.set_input_defaults('q3', val=np.random.random(nn))
-    #p.model.set_input_defaults('q3_dot', val=np.random.random(nn))
+    p.model.set_input_defaults('q3', val=np.random.random(nn))
+    p.model.set_input_defaults('q3_dot', val=np.random.random(nn))
 
 
     # check partials
     p.setup(check=True)
     p.run_model()
     #om.n2(p)
-    p.check_partials(method='cs',compact_print=True)
+    p.check_partials(compact_print=True)
 
 if __name__ == '__main__':
     check_partials()
