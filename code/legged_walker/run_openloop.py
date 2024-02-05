@@ -37,7 +37,7 @@ def main():
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
 
-    threelink = traj.add_phase('threelink', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=5, order=3), ode_init_kwargs={'states_ref': midphase_guess}))
+    threelink = traj.add_phase('threelink', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=10, order=3), ode_init_kwargs={'states_ref': midphase_guess}))
 
     threelink.set_time_options(fix_initial=True, fix_duration=True, duration_val=duration_threelink, duration_ref=duration_threelink, units='s')
 
@@ -73,9 +73,9 @@ def main():
 
     #####
 
-    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=5, order=3), ode_init_kwargs={'states_ref': states_final}))
+    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=10, order=3), ode_init_kwargs={'states_ref': states_final}))
 
-    lockphase.set_time_options(fix_initial=False, fix_duration=True, duration_val=duration_lockphase, duration_ref=duration_lockphase, units='s') # set time of simulation    
+    lockphase.set_time_options(fix_initial=True, initial_val=12, fix_duration=True, duration_val=duration_lockphase, duration_ref=duration_lockphase, units='s') # set time of simulation    
 
     #states
     lockphase.add_state('q1', fix_initial=True, lower = -4, upper = 4, rate_source='q1_dot', units='rad')
@@ -117,6 +117,8 @@ def main():
     #p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 500, 1000], nodes='state_input'))
     #p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m')
 
+
+
     # initial guess / time - three link
     p.set_val('traj.threelink.t_initial', 0.0)
     p.set_val('traj.threelink.states:q1', threelink.interp(ys=[states_init['q1'], midphase_guess['q1']], nodes='state_input'), units='rad')
@@ -129,16 +131,22 @@ def main():
     p.set_val('traj.threelink.controls:tau', threelink.interp(ys=[0, 10], nodes='control_input'), units='N*m')
 
 
+    traj.add_linkage_constraint('threelink', 'lockphase', 'q1', 'q1')
+    traj.add_linkage_constraint('threelink', 'lockphase', 'q1_dot', 'q1_dot')
+    traj.add_linkage_constraint('threelink', 'lockphase', 'q2', 'q2')
+    traj.add_linkage_constraint('threelink', 'lockphase', 'q2_dot', 'q2_dot')
+    traj.add_linkage_constraint('threelink', 'lockphase', 'cost', 'cost')
+    traj.add_linkage_constraint('threelink', 'lockphase', 'tau', 'tau')
     traj.link_phases(['threelink', 'lockphase'])
     # need to add other phases
 
 
-    p.model.traj.phases.lockphase.set_refine_options(refine=True, tol=1.0E-6)
-    p.model.traj.phases.threelink.set_refine_options(refine=True, tol=1.0E-6)
+    #.model.traj.phases.lockphase.set_refine_options(refine=True, tol=1.0E-6)
+    #p.model.traj.phases.threelink.set_refine_options(refine=True, tol=1.0E-6)
 
 
     # simulate and run problem
-    dm.run_problem(p, run_driver=True, simulate=True, refine_iteration_limit=5, refine_method='hp', simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 3}, make_plots=True)
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10}, make_plots=True)
 
     om.n2(p)
 
@@ -148,7 +156,7 @@ def main():
     # print('q1_dot:', p.get_val('q1_dot', units='rad/s'))
     # print('q2:', p.get_val('q2', units='rad'))
     # print('q2_dot:', p.get_val('q2_dot', units='rad/s'))
-    cost = p.get_val('traj.lockphase.states:cost')[-1]
+    cost = p.get_val('traj.threelink.states:cost')[-1]
     print('cost: ', cost)
 
     sim_sol = om.CaseReader('dymos_simulation.db').get_case('final')
@@ -162,7 +170,7 @@ def main():
                   ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau'),
                   ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.savefig('openloop_kneedwalker.pdf', bbox_inches='tight')
+    plt.savefig('openloop_locked_kneedwalker.pdf', bbox_inches='tight')
 
 
     plot_results([('traj.threelink.timeseries.time','traj.threelink.timeseries.states:q1','time', 'q1'),
@@ -173,7 +181,7 @@ def main():
                   ('traj.threelink.timeseries.time','traj.threelink.timeseries.controls:tau','time','tau'),
                   ('traj.threelink.timeseries.time', 'traj.threelink.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.savefig('openloop_kneedwalker.pdf', bbox_inches='tight')
+    plt.savefig('openloop_three_kneedwalker.pdf', bbox_inches='tight')
 
 if __name__ == '__main__':
     main()

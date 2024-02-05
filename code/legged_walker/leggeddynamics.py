@@ -139,8 +139,7 @@ class lockedKneeDynamics(om.ExplicitComponent):
         G2_dq2 =  (m_t*b2 + m_s*(lt + b1))*g*np.cos(q2)
 
         K_dq1 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq1)
-        K_dq2 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq2)
-            
+        K_dq2 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq2)     
 
         partials['q1_dotdot', 'q1'] = (H12_dq1*K*h*q1_dot + H12*K_dq1*h*q1_dot + h_dq1*H12*K*q1_dot) + (H22*K_dq1*h*q2_dot + H22*q2_dot*K*h_dq1) - (H22*K_dq1*G1 + H22*K*G1_dq1) + (H12_dq1*K*G2 + H12*K_dq1*G2) - (H22*K_dq1*tau) - (H12*K_dq1 + H12_dq1*K)*tau
         partials['q1_dotdot', 'q2'] = (H12_dq2*K*h*q1_dot + H12*K_dq2*h*q1_dot + H12*K*h_dq2*q1_dot) + (H22*K_dq2*h*q2_dot + H22*q2_dot*K*h_dq2) - (H22*K_dq2*G1) + (H12_dq2*K*G2 + H12*K_dq2*G2 + H12*K*G2_dq2) - (H22*K_dq2*tau) - (H12*K_dq2 + H12_dq2*K)*tau
@@ -259,9 +258,9 @@ class threeLinkDynamics(om.ExplicitComponent):
         A31 = A13; A32 = A23; A33 = H11*H22 - H12*H12
 
         # calcuate rates
-        outputs['q1_dotdot_3'] = (-((A12*h211*q1_dot + A13*h311*q1_dot)*q1_dot + (A11*h122*q2_dot + A13*h322*q2_dot)*q2_dot + (A11*h133*q3_dot + A12*h233*q3_dot)*q3_dot + A11*G1 + A12*G2 + A13*G3) - A11 + A12 + A13)*(1/DH)
-        outputs['q2_dotdot_3'] = (-((A22*h211*q1_dot + A23*h311*q1_dot)*q1_dot + (A21*h122*q2_dot + A23*h322*q2_dot)*q2_dot + (A21*h133*q3_dot + A22*h233*q3_dot)*q3_dot + A21*G1 + A22*G2 + A23*G3) + -A21 + A22 + A23)*(1/DH)
-        outputs['q3_dotdot_3'] = -(((A32*h211*q1_dot + A33*h311*q1_dot)*q1_dot + (A31*h122*q2_dot + A33*h322*q2_dot)*q2_dot + (A31*h133*q3_dot + A32*h233*q3_dot)*q3_dot +A31*G1 + A32*G2 + A33*G3) + -A31 + A32 + A33)*(1/DH)
+        outputs['q1_dotdot_3'] = (-((A12*h211*q1_dot + A13*h311*q1_dot) + (A11*h122*q2_dot + A13*h322*q2_dot) + (A11*h133*q3_dot + A12*h233*q3_dot) + A11*G1 + A12*G2 + A13*G3)  + (-A11 + A12 + A13)*tau)*(1/DH)
+        outputs['q2_dotdot_3'] = (-((A22*h211*q1_dot + A23*h311*q1_dot) + (A21*h122*q2_dot + A23*h322*q2_dot) + (A21*h133*q3_dot + A22*h233*q3_dot) + A21*G1 + A22*G2 + A23*G3) + (-A21 + A22 + A23)*tau)*(1/DH)
+        outputs['q3_dotdot_3'] = -(((A32*h211*q1_dot + A33*h311*q1_dot) + (A31*h122*q2_dot + A33*h322*q2_dot) + (A31*h133*q3_dot + A32*h233*q3_dot) +A31*G1 + A32*G2 + A33*G3) + (-A31 + A32 + A33)*tau)*(1/DH)
 
         """ H = np.array([[H11, H12, H13], [H12, H22, H23], [H13, H23, H33]], dtype=float)
         B = np.array([[0, h122*q2_dot, h133*q3_dot],[h211*q1_dot, 0, h233*q3_dot], [h311*q1_dot, h322*q2_dot, 0]], dtype=float)
