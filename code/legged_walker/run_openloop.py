@@ -127,17 +127,17 @@ def main():
     p.set_val('traj.threelink.states:q2_dot', threelink.interp(ys=[states_init['q2_dot'], midphase_guess['q2_dot']], nodes='state_input'), units='rad/s')
     p.set_val('traj.threelink.states:q3', threelink.interp(ys=[states_init['q3'], midphase_guess['q3']], nodes='state_input'), units='rad')
     p.set_val('traj.threelink.states:q3_dot', threelink.interp(ys=[states_init['q3_dot'], midphase_guess['q3_dot']], nodes='state_input'), units='rad/s')
-    p.set_val('traj.threelink.states:cost', threelink.interp(xs=[0, 2, duration_threelink], ys=[0, 500, 1000], nodes='state_input'))
+    p.set_val('traj.threelink.states:cost', threelink.interp(xs=[0, 10, duration_threelink], ys=[0, 500, 1000], nodes='state_input'))
     p.set_val('traj.threelink.controls:tau', threelink.interp(ys=[0, 10], nodes='control_input'), units='N*m')
 
 
-    traj.add_linkage_constraint('threelink', 'lockphase', 'q1', 'q1')
-    traj.add_linkage_constraint('threelink', 'lockphase', 'q1_dot', 'q1_dot')
-    traj.add_linkage_constraint('threelink', 'lockphase', 'q2', 'q2')
-    traj.add_linkage_constraint('threelink', 'lockphase', 'q2_dot', 'q2_dot')
-    traj.add_linkage_constraint('threelink', 'lockphase', 'cost', 'cost')
-    traj.add_linkage_constraint('threelink', 'lockphase', 'tau', 'tau')
-    traj.link_phases(['threelink', 'lockphase'])
+    #traj.add_linkage_constraint('threelink', 'lockphase', 'q1', 'q1')
+    #traj.add_linkage_constraint('threelink', 'lockphase', 'q1_dot', 'q1_dot')
+    #traj.add_linkage_constraint('threelink', 'lockphase', 'q2', 'q2')
+    #traj.add_linkage_constraint('threelink', 'lockphase', 'q2_dot', 'q2_dot')
+    #traj.add_linkage_constraint('threelink', 'lockphase', 'cost', 'cost')
+    #traj.add_linkage_constraint('threelink', 'lockphase', 'tau', 'tau')
+    traj.link_phases(['threelink', 'lockphase'],connected=True)# vars=['q1', 'q2', 'q1_dot', 'q2_dot', 'tau', 'cost'])
     # need to add other phases
 
 
