@@ -23,7 +23,7 @@ def main():
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
 
-    threelink = traj.add_phase('threelink', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=500, order=3), ode_init_kwargs={'states_ref': states_final}))
+    threelink = traj.add_phase('threelink', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=100, order=3), ode_init_kwargs={'states_ref': states_final}))
 
     threelink.set_time_options(fix_initial=True, fix_duration=True, duration_val=duration, duration_ref=duration, units='s')
 
