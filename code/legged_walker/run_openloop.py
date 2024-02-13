@@ -16,8 +16,8 @@ def main():
     b1 = 0.16
     b2 = 0.5
     m_H = 10
-    m_t = 4.99
-    m_s = 0.01
+    m_t = 4
+    m_s = 1
 
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning (maybe ?)

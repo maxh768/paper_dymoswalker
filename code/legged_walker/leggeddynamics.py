@@ -14,7 +14,7 @@ class kneedWalker(om.Group):
     def setup(self):
         nn=self.options['num_nodes']
 
-        input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'x1', 'x2', 'x3', 'x4', 'm_H', 'm_t', 'm_s', 'tau']
+        input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'x1', 'x2', 'x3', 'x4', 'm_H', 'm_t', 'm_s']
         self.add_subsystem('lockedknee', lockedKneeDynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
         self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'tau'], promotes_outputs=['*'])
 
@@ -54,7 +54,7 @@ class lockedKneeDynamics(om.ExplicitComponent):
         self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
 
         # applied torque - torque is applied equally and opposite to each leg
-        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
+        #self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
 
 
         # outputs
@@ -67,7 +67,7 @@ class lockedKneeDynamics(om.ExplicitComponent):
         self.add_output('x4_dot', shape=(nn,), units='rad/s**2',desc='q2 dotdot')
 
         #partials
-        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
         #self.declare_coloring(wrt=['x1', 'x2', 'x3', 'x4'], method='cs', show_summary=False)
         #self.set_check_partial_options(wrt=['x1', 'x2', 'x3', 'x4'], method='fd', step=1e-6)
 
@@ -89,7 +89,7 @@ class lockedKneeDynamics(om.ExplicitComponent):
         x2 = inputs['x2']
         x3 = inputs['x3']
         x4 = inputs['x4']
-        tau = inputs['tau']
+        #tau = inputs['tau']
 
         ls = a1 + b1
         lt = a2 + b2
@@ -106,8 +106,8 @@ class lockedKneeDynamics(om.ExplicitComponent):
 
         outputs['x1_dot'] = x3
         outputs['x2_dot'] = x4
-        outputs['x3_dot'] = -H12*K*h*(x3**2) + -H22*K*h*(x4**2) - (H22*K*G1 - H12*K*G2) - ((H22 + H12)*tau*K)
-        outputs['x4_dot'] = H11*K*h*(x3**2) + H12*K*h*(x4**2) - (-H12*K*G1 + H11*K*G2) + ((H12*K + H11*K)*tau)
+        outputs['x3_dot'] = -H12*K*h*(x3**2) + -H22*K*h*(x4**2) - (H22*K*G1 - H12*K*G2) #- ((H22 + H12)*tau*K)
+        outputs['x4_dot'] = H11*K*h*(x3**2) + H12*K*h*(x4**2) - (-H12*K*G1 + H11*K*G2) #+ ((H12*K + H11*K)*tau)
 
     def compute_partials(self, inputs, partials):
        # computes analytical partials 

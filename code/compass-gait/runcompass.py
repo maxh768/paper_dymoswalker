@@ -20,7 +20,7 @@ def main():
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning (maybe ?)
     """
     states_init = {'x1': 0, 'x3': 0.4, 'x2': 0, 'x4': -2}
-    states_final = {'x1': -45*(np.pi / 180), 'x3': 0, 'x2': -45*(np.pi / 180), 'x4': 0}
+    states_final = {'x1': 0.4, 'x3': 0, 'x2': -.6, 'x4': 1.6}
 
     p = om.Problem()
 
@@ -33,7 +33,7 @@ def main():
 
     lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=50, order=3), ode_init_kwargs={'states_ref': states_final}))
 
-    lockphase.set_time_options(fix_initial=True, initial_val=0, fix_duration=False, units='s') # set time of simulation    
+    lockphase.set_time_options(fix_initial=True, fix_duration=False, units='s') # set time of simulation    
 
     #states
     lockphase.add_state('x1', fix_initial=True, upper=3, lower=-3, rate_source='x1_dot', units='rad')
@@ -98,6 +98,20 @@ def main():
                   ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
     plt.savefig('compass_gait.pdf', bbox_inches='tight')
+
+    x_data = p.get_val('traj.lockphase.states:x2')
+    y_data = p.get_val('traj.lockphase.states:x4')
+
+    fig, ax = plt.subplots()
+
+    ax.plot(x_data, y_data, linewidth=2.0)
+
+    ax.set(xlim=(-1, 0.3), ylim=(-5, 5))
+
+    ax.set_xlabel('q2 angle')
+    ax.set_ylabel('q2 angular velocity')
+
+    plt.savefig('limitcycle_compass.pdf')
 
 if __name__ == '__main__':
     main()
