@@ -22,7 +22,7 @@ def main():
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning (maybe ?)
     """
-    states_init = {'x1': 45*(np.pi / 180), 'x3': 0, 'x2': 40*(np.pi / 180), 'x4': 0}
+    states_init = {'x1': 0, 'x3': 0.4, 'x2': 0, 'x4': -2}
     states_final = {'x1': -45*(np.pi / 180), 'x3': 0, 'x2': -50*(np.pi / 180), 'x4': 0}
 
     p = om.Problem()
@@ -59,9 +59,9 @@ def main():
 
     # end contraints
     lockphase.add_boundary_constraint('x1', loc='final', equals=states_final['x1'], units='rad')
-    lockphase.add_boundary_constraint('x3', loc='final', equals=states_final['x3'], units='rad/s')
+    #lockphase.add_boundary_constraint('x3', loc='final', equals=states_final['x3'], units='rad/s')
     lockphase.add_boundary_constraint('x2', loc='final', equals=states_final['x2'], units='rad')
-    lockphase.add_boundary_constraint('x4', loc='final', equals=states_final['x4'], units='rad/s')
+    #lockphase.add_boundary_constraint('x4', loc='final', equals=states_final['x4'], units='rad/s')
 
     # start constraints
     lockphase.add_boundary_constraint('x1', loc='initial', equals=states_init['x1'], units='rad')

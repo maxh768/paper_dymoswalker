@@ -11,16 +11,16 @@ def main():
 
     # defining paramters of the legged walker
 
-    a = 0.375
-    b = 0.175
-    mh = 0.5
-    m = 1.2
+    a = 0.5
+    b = 0.5
+    mh = 10
+    m = 5
 
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning (maybe ?)
     """
-    states_init = {'x1': 45*(np.pi / 180), 'x3': 0, 'x2': 40*(np.pi / 180), 'x4': 0}
-    states_final = {'x1': -45*(np.pi / 180), 'x3': 0, 'x2': -50*(np.pi / 180), 'x4': 0}
+    states_init = {'x1': 0, 'x3': 0.4, 'x2': 0, 'x4': -2}
+    states_final = {'x1': -45*(np.pi / 180), 'x3': 0, 'x2': -45*(np.pi / 180), 'x4': 0}
 
     p = om.Problem()
 
@@ -31,14 +31,14 @@ def main():
 
     traj = p.model.add_subsystem('traj', dm.Trajectory())
 
-    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=10, order=3), ode_init_kwargs={'states_ref': states_final}))
+    lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=50, order=3), ode_init_kwargs={'states_ref': states_final}))
 
-    lockphase.set_time_options(fix_initial=True, initial_val=0, fix_duration=True, duration_val=duration_lockphase, duration_ref=duration_lockphase, units='s') # set time of simulation    
+    lockphase.set_time_options(fix_initial=True, initial_val=0, fix_duration=False, units='s') # set time of simulation    
 
     #states
-    lockphase.add_state('x1', fix_initial=True, rate_source='x1_dot', units='rad')
+    lockphase.add_state('x1', fix_initial=True, upper=3, lower=-3, rate_source='x1_dot', units='rad')
     lockphase.add_state('x3', fix_initial=True, rate_source='x3_dot', units='rad/s')
-    lockphase.add_state('x2', fix_initial=True, rate_source='x2_dot', units='rad')
+    lockphase.add_state('x2', fix_initial=True, upper=3, lower=-3, rate_source='x2_dot', units='rad')
     lockphase.add_state('x4', fix_initial=True,  rate_source='x4_dot', units='rad/s')
     lockphase.add_state('cost', fix_initial=True, rate_source='costrate')
 
@@ -52,9 +52,9 @@ def main():
 
     # end contraints
     lockphase.add_boundary_constraint('x1', loc='final', equals=states_final['x1'], units='rad')
-    lockphase.add_boundary_constraint('x3', loc='final', equals=states_final['x3'], units='rad/s')
+    #lockphase.add_boundary_constraint('x3', loc='final', equals=states_final['x3'], units='rad/s')
     lockphase.add_boundary_constraint('x2', loc='final', equals=states_final['x2'], units='rad')
-    lockphase.add_boundary_constraint('x4', loc='final', equals=states_final['x4'], units='rad/s')
+    #lockphase.add_boundary_constraint('x4', loc='final', equals=states_final['x4'], units='rad/s')
 
     # start constraints
     lockphase.add_boundary_constraint('x1', loc='initial', equals=states_init['x1'], units='rad')
@@ -73,7 +73,7 @@ def main():
     p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
     p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m')
 
-    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 3})
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
 
     #om.n2(p)
 
@@ -101,6 +101,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-

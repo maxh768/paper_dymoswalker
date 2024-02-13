@@ -14,11 +14,11 @@ class system(om.Group):
 
         input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm', 'tau']
         self.add_subsystem('lockedknee', dynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
-        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2'], promotes_outputs=['*'])
+        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'tau'], promotes_outputs=['*'])
 
 
 class dynamics(om.ExplicitComponent):
-    
+
     def initialize(self):
         self.options.declare('num_nodes', types=int)
         self.options.declare('states_ref', types=dict)
@@ -95,8 +95,8 @@ class dynamics(om.ExplicitComponent):
 
         outputs['x1_dot'] = x3
         outputs['x2_dot'] = x4
-        outputs['x3_dot'] = (H12*K*h*x3**2) + (H22*K*h*x4**2) - (H22 + H12)*K*tau - H22*K*G1 + H12*K*G2
-        outputs['x4_dot'] = (-H11*K*h*x3**2) - (H12*K*h*x4**2) + ((H12 + H11)*K*tau) + H12*K*G1 - H11*K*G1
+        outputs['x3_dot'] = (H12*K*h*x3**2) + (H22*K*h*x4**2) - H22*K*G1 + H12*K*G2 - (H22 + H12)*K*tau
+        outputs['x4_dot'] = (-H11*K*h*x3**2) - (H12*K*h*x4**2) + H12*K*G1 - H11*K*G1 + ((H12 + H11)*K*tau)
 
     def compute_partials(self, inputs, partials):
        # computes analytical partials 
@@ -138,14 +138,14 @@ class dynamics(om.ExplicitComponent):
         K_dq1 = (-(H11*H22 + H12_abs)**(-2))*(-2*H12_abs)*(-H12_dq1)
         K_dq2 = (-(H11*H22 + H12_abs)**(-2))*(-2*H12_abs)*(-H12_dq2)
 
-        partials['x3_dot', 'x1'] = (x3**2)*((H12_dq1*K*h) + (H12*K_dq1*h) + (H12*K*h_dq1)) + ((x4**2)*H22)*((K_dq1*h) + (K*h_dq1)) - (H22*K_dq1*tau) - (tau*((H12_dq1*K) + (H12*K_dq1))) - (H22*((K_dq1*G1) + (K*G1_dq1))) + G2*((H12_dq1*K) + (H12*K_dq1))
-        partials['x3_dot', 'x2'] = (x3**2)*((H12_dq2*K*h) + (H12*K_dq2*h) + (H12*K*h_dq2)) + ((x4**2)*H22)*((K_dq2*h) + (K*h_dq2)) - (H22*K_dq2*tau) - (tau*((H12_dq2*K) + (H12*K_dq2))) - (H22*K_dq2*G1) + ((H12_dq2*K*G2) + (H12*K_dq2*G2) + (H12*K*G2_dq2))
+        partials['x3_dot', 'x1'] = (x3**2)*((H12_dq1*K*h) + (H12*K_dq1*h) + (H12*K*h_dq1)) + ((x4**2)*H22)*((K_dq1*h) + (K*h_dq1)) - (H22*((K_dq1*G1) + (K*G1_dq1))) + G2*((H12_dq1*K) + (H12*K_dq1)) - (H22*tau*(K_dq1)) - (tau*((H12_dq1*K) + (H12*K_dq1)))
+        partials['x3_dot', 'x2'] = (x3**2)*((H12_dq2*K*h) + (H12*K_dq2*h) + (H12*K*h_dq2)) + ((x4**2)*H22)*((K_dq2*h) + (K*h_dq2)) - (H22*K_dq2*G1) + ((H12_dq2*K*G2) + (H12*K_dq2*G2) + (H12*K*G2_dq2)) + (tau*((H12_dq2*K) + (H12*K_dq2))) + (tau*H11*K_dq2)
         partials['x3_dot', 'x3'] = 2*H12*K*h*x3
         partials['x3_dot', 'x4'] = 2*H22*K*h*x4
         partials['x3_dot', 'tau'] = -(H22 + H12)*K
 
-        partials['x4_dot', 'x1'] = (-x3**2)*H11*((K_dq1*h) + (K*h_dq1)) + (-x4**2)*((H12_dq1*K*h) + (H12*K_dq1*h) + (H12*K*h_dq1)) + tau*((H12_dq1*K) + (H12*K_dq1)) + (H11*tau*K_dq1) + ((H12_dq1*K*G1) + (H12*K_dq1*G1) + (H12*K*G1_dq1)) - (H11*K_dq1*G2)
-        partials['x4_dot', 'x2'] = (-x3**2)*H11*((K_dq2*h) + (K*h_dq2)) + (-x4**2)*((H12_dq2*K*h) + (H12*K_dq2*h) + (H12*K*h_dq2)) + tau*((H12_dq2*K) + (H12*K_dq2)) + (H11*tau*K_dq2) + G1*((H12_dq2*K) + (H12*K_dq2)) - (H11*((K_dq2*G2) + (K*G2_dq2)))
+        partials['x4_dot', 'x1'] = (-x3**2)*H11*((K_dq1*h) + (K*h_dq1)) + (-x4**2)*((H12_dq1*K*h) + (H12*K_dq1*h) + (H12*K*h_dq1)) + ((H12_dq1*K*G1) + (H12*K_dq1*G1) + (H12*K*G1_dq1)) - (H11*K_dq1*G2)
+        partials['x4_dot', 'x2'] = (-x3**2)*H11*((K_dq2*h) + (K*h_dq2)) + (-x4**2)*((H12_dq2*K*h) + (H12*K_dq2*h) + (H12*K*h_dq2))+ G1*((H12_dq2*K) + (H12*K_dq2)) - (H11*((K_dq2*G2) + (K*G2_dq2)))
         partials['x4_dot', 'x3'] = -2*H11*K*h*x3
         partials['x4_dot', 'x4'] = -2*H12*K*h*x4
         partials['x4_dot', 'tau'] = (H11 + H12)*K
@@ -154,11 +154,13 @@ class dynamics(om.ExplicitComponent):
         partials['x1_dot', 'x2'] = 0
         partials['x1_dot', 'x3'] = 1
         partials['x1_dot', 'x4'] = 0
+        partials['x1_dot', 'tau'] = 0
 
         partials['x2_dot', 'x1'] = 0
         partials['x2_dot', 'x2'] = 0
         partials['x2_dot', 'x3'] = 0
         partials['x2_dot', 'x4'] = 1
+        partials['x2_dot', 'tau'] = 0
        
 
 class CostFunc(om.ExplicitComponent):
@@ -171,17 +173,17 @@ class CostFunc(om.ExplicitComponent):
         nn = self.options['num_nodes']
         self.add_input('x1', shape=(nn,),units='rad', desc='q1')
         self.add_input('x2', shape=(nn,),units='rad', desc='q2')
-        #self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
+        self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
         
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
         
-        self.declare_partials(of=['costrate'], wrt=['x1', 'x2',], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_partials(of=['costrate'], wrt=['x1', 'x2', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
         #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
         #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
 
     def compute(self, inputs, outputs,):
-        #tau = inputs['tau']
+        tau = inputs['tau']
         x1 = inputs['x1']
         x2 = inputs['x2']
         states_ref = self.options['states_ref']
@@ -193,10 +195,10 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2-x2ref
 
-        outputs['costrate'] = dx1**2 + dx2**2
+        outputs['costrate'] = dx1**2 + dx2**2 + tau**2
 
     def compute_partials(self, inputs, partials,):
-        #tau = inputs['tau']
+        tau = inputs['tau']
         x1 = inputs['x1']
         x2 = inputs['x2']
         states_ref = self.options['states_ref']
@@ -209,7 +211,7 @@ class CostFunc(om.ExplicitComponent):
         dx2 = x2-x2ref
         
     
-        #partials['costrate', 'tau'] = 0
+        partials['costrate', 'tau'] = 2*tau
         partials['costrate', 'x1'] = 2*dx1
         partials['costrate', 'x2'] = 2*dx2
 
@@ -233,7 +235,7 @@ def check_partials():
     p.model.set_input_defaults('x3', val=np.random.random(nn))
     p.model.set_input_defaults('x2', val=np.random.random(nn))
     p.model.set_input_defaults('x4', val=np.random.random(nn))
-    p.model.set_input_defaults('tau', val=np.random.random(nn))
+    #p.model.set_input_defaults('tau', val=np.random.random(nn))
 
 
     # check partials
