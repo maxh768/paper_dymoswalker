@@ -11,19 +11,19 @@ def main():
 
     # defining paramters of the legged walker
     L = 1
-    a1 = 0.375
-    a2 = 0.175
-    b1 = 0.125
-    b2 = 0.325
-    m_H = 0.5
-    m_t = 0.5
-    m_s = 0.05
+    a1 = 0.18
+    a2 = 0.16
+    b1 = 0.16
+    b2 = 0.5
+    m_H = 10
+    m_t = 4.99
+    m_s = 0.01
 
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning (maybe ?)
     """
     states_init = {'x1': 0, 'x3': 0.4, 'x2': 0, 'x4': -2}
-    states_final = {'x1': -45*(np.pi / 180), 'x3': 0, 'x2': -50*(np.pi / 180), 'x4': 0}
+    states_final = {'x1': -25*(np.pi / 180), 'x3': 0, 'x2': -20*(np.pi / 180), 'x4': 0}
 
     p = om.Problem()
 
@@ -36,7 +36,7 @@ def main():
 
     lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=kneedWalker, transcription=dm.GaussLobatto(num_segments=100, order=3), ode_init_kwargs={'states_ref': states_final}))
 
-    lockphase.set_time_options(fix_initial=True, initial_val=0, fix_duration=True, duration_val=duration_lockphase, duration_ref=duration_lockphase, units='s') # set time of simulation    
+    lockphase.set_time_options(fix_initial=True, fix_duration=False, units='s') # set time of simulation    
 
     #states
     lockphase.add_state('x1', fix_initial=True, rate_source='x1_dot', units='rad')
@@ -81,7 +81,7 @@ def main():
     p.set_val('traj.lockphase.states:x2', lockphase.interp(ys=[states_init['x2'], states_final['x2']], nodes='state_input'), units='rad')
     p.set_val('traj.lockphase.states:x4', lockphase.interp(ys=[states_init['x4'], states_final['x4']], nodes='state_input'), units='rad/s')
     p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
-    p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[-10, 10], nodes='control_input'), units='N*m')
+    p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m')
 
 
     # simulate and run problem
