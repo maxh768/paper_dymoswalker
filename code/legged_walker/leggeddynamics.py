@@ -14,10 +14,11 @@ class kneedWalker(om.Group):
     def setup(self):
         nn=self.options['num_nodes']
 
-        input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'q1', 'q2', 'q1_dot', 'q2_dot', 'm_H', 'm_t', 'm_s', 'tau']
+        input_names = ['L', 'a1', 'b1', 'a2', 'b2', 'x1', 'x2', 'x3', 'x4', 'm_H', 'm_t', 'm_s']
         self.add_subsystem('lockedknee', lockedKneeDynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
-        self.add_subsystem('threeLink', threeLinkDynamics(num_nodes=nn, ), promotes_inputs=['*'], promotes_outputs=['*'])
-        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['*'], promotes_outputs=['*'])
+        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'tau'], promotes_outputs=['*'])
+
+
 
 class lockedKneeDynamics(om.ExplicitComponent):
     
@@ -39,30 +40,36 @@ class lockedKneeDynamics(om.ExplicitComponent):
         self.add_input('a2', shape=(1,),units='m', desc='thigh length below points mass')
         self.add_input('b2', shape=(1,),units='m', desc='thigh length above point mass')
 
-        # q1 and q2
-        self.add_input('q1', shape=(nn,),units='rad', desc='q1 angle')
-        self.add_input('q2', shape=(nn,),units='rad', desc='q2 angle')
-        self.add_input('q1_dot', shape=(nn,),units='rad/s', desc='q1 angular velocity')
-        self.add_input('q2_dot', shape=(nn,),units='rad/s', desc='q2 anglular velocity')
+        """
+        x1 = q1, x2 = q2, x3 = q1_dot, x4 = q2_dot
+        """
+        self.add_input('x1', shape=(nn,),units='rad', desc='q1')
+        self.add_input('x2', shape=(nn,),units='rad', desc='q2')
+        self.add_input('x3', shape=(nn,),units='rad/s', desc='q1 dot')
+        self.add_input('x4', shape=(nn,),units='rad/s', desc='q2 dot')
 
         # masses
         self.add_input('m_H', shape=(1,),units='kg', desc='hip mass')
         self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
         self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
 
-        # applied torque
-        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
+        # applied torque - torque is applied equally and opposite to each leg
+        #self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
 
 
         # outputs
-        # angular accelerations of q1 and q1 (state rates)
-        self.add_output('q1_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q1')
-        self.add_output('q2_dotdot', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
+        """
+        from state space eqns
+        """
+        self.add_output('x1_dot', shape=(nn,), units='rad/s',desc='q1 dot')
+        self.add_output('x2_dot', shape=(nn,), units='rad/s',desc='q2 dot')
+        self.add_output('x3_dot', shape=(nn,), units='rad/s**2',desc='q1 dotdot')
+        self.add_output('x4_dot', shape=(nn,), units='rad/s**2',desc='q2 dotdot')
 
         #partials
-        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
-        #self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='cs', show_summary=False)
-        #self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot'], method='fd', step=1e-6)
+        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        #self.declare_coloring(wrt=['x1', 'x2', 'x3', 'x4'], method='cs', show_summary=False)
+        #self.set_check_partial_options(wrt=['x1', 'x2', 'x3', 'x4'], method='fd', step=1e-6)
 
         #self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
         #self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
@@ -78,30 +85,32 @@ class lockedKneeDynamics(om.ExplicitComponent):
         m_H = inputs['m_H']
         m_t = inputs['m_t']
         m_s = inputs['m_s']
-        q1 = inputs['q1']
-        q2 = inputs['q2']
-        q1_dot = inputs['q1_dot']
-        q2_dot = inputs['q2_dot']
-        tau = inputs['tau']
+        x1 = inputs['x1']
+        x2 = inputs['x2']
+        x3 = inputs['x3']
+        x4 = inputs['x4']
+        #tau = inputs['tau']
 
         ls = a1 + b1
         lt = a2 + b2
 
         # mtrix components
         H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*(L**2)
-        H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1)) #
+        H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(x2-x1)) #
         H22 = m_t*b2**2 + m_s*(lt + b1)**2
-        h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2)) #
-        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1) #
-        G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2) #
+        h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(x1-x2)) #
+        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(x1) #
+        G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(x2) #
 
         K = 1 / (H11*H22 - H12*H12) # inverse constant
 
-        outputs['q1_dotdot'] = H12*K*h*q1_dot + H22*K*h*q2_dot - (H22*K*G1 - H12*K*G2) + ((-H22*K - H12*K)*tau)
-        outputs['q2_dotdot'] = -H11*K*h*q1_dot - H12*K*h*q2_dot - (-H12*K*G1 + H11*K*G2) + ((H12*K + H11*K)*tau)
+        outputs['x1_dot'] = x3
+        outputs['x2_dot'] = x4
+        outputs['x3_dot'] = -H12*K*h*(x3**2) + -H22*K*h*(x4**2) - (H22*K*G1 - H12*K*G2) #- ((H22 + H12)*tau*K)
+        outputs['x4_dot'] = H11*K*h*(x3**2) + H12*K*h*(x4**2) - (-H12*K*G1 + H11*K*G2) #+ ((H12*K + H11*K)*tau)
 
     def compute_partials(self, inputs, partials):
-        # computes analytical partials 
+       # computes analytical partials 
 
         g = self.options['g']
         L = inputs['L']
@@ -112,192 +121,60 @@ class lockedKneeDynamics(om.ExplicitComponent):
         m_H = inputs['m_H']
         m_t = inputs['m_t']
         m_s = inputs['m_s']
-        q1 = inputs['q1']
-        q2 = inputs['q2']
-        q1_dot = inputs['q1_dot']
-        q2_dot = inputs['q2_dot']
-        tau = inputs['tau']
+        x1 = inputs['x1']
+        x2 = inputs['x2']
+        x3 = inputs['x3']
+        x4 = inputs['x4']
+        #tau = inputs['tau']
 
         ls = a1 + b1
         lt = a2 + b2
 
         H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*(L**2)
-        H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q2-q1)) #
+        H12 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(x2-x1)) #
         H22 = m_t*b2**2 + m_s*(lt + b1)**2
-        h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(q1-q2)) #
-        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(q1) #
-        G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(q2)
+        h = -(m_t*b2 + m_s*(lt + b1))*(L*np.sin(x1-x2)) #
+        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.sin(x1) #
+        G2 = (m_t*b2 + m_s*(lt + b1))*g*np.sin(x2)
 
         K = 1 / (H11*H22 - H12*H12)
 
         # partials of terms wrt q1 q2
-        H12_dq1 = -(m_t*b2 + m_s*(lt + b1))*L*np.sin(q2-q1)
-        H12_dq2 = -(m_t*b2 + m_s*(lt + b1))*L*np.sin(q2-q1)*(-1)
-        h_dq1 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q1-q2))
-        h_dq2 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(q1-q2))*(-1)
-        G1_dq1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.cos(q1)
-        G2_dq2 =  (m_t*b2 + m_s*(lt + b1))*g*np.cos(q2)
+        H12_dq1 = -(m_t*b2 + m_s*(lt + b1))*L*np.sin(x2-x1)
+        H12_dq2 = -(m_t*b2 + m_s*(lt + b1))*L*np.sin(x2-x1)*(-1)
+        h_dq1 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(x1-x2))
+        h_dq2 = -(m_t*b2 + m_s*(lt + b1))*(L*np.cos(x1-x2))*(-1)
+        G1_dq1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_t + m_s)*L)*g*np.cos(x1)
+        G2_dq2 =  (m_t*b2 + m_s*(lt + b1))*g*np.cos(x2)
 
-        K_dq1 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq1)
-        K_dq2 = (-(H11*H12 - H12**2)**(-2))*(-2*H12)*(H12_dq2)     
+        H12_abs = -H12
 
-        partials['q1_dotdot', 'q1'] = (H12_dq1*K*h*q1_dot + H12*K_dq1*h*q1_dot + h_dq1*H12*K*q1_dot) + (H22*K_dq1*h*q2_dot + H22*q2_dot*K*h_dq1) - (H22*K_dq1*G1 + H22*K*G1_dq1) + (H12_dq1*K*G2 + H12*K_dq1*G2) - (H22*K_dq1*tau) - (H12*K_dq1 + H12_dq1*K)*tau
-        partials['q1_dotdot', 'q2'] = (H12_dq2*K*h*q1_dot + H12*K_dq2*h*q1_dot + H12*K*h_dq2*q1_dot) + (H22*K_dq2*h*q2_dot + H22*q2_dot*K*h_dq2) - (H22*K_dq2*G1) + (H12_dq2*K*G2 + H12*K_dq2*G2 + H12*K*G2_dq2) - (H22*K_dq2*tau) - (H12*K_dq2 + H12_dq2*K)*tau
-        partials['q1_dotdot', 'q1_dot'] = H12*K*h
-        partials['q1_dotdot', 'q2_dot'] = H22*K*h
-        partials['q1_dotdot', 'tau'] = -H22*K - H12*K
+        K_dq1 = (-(H11*H22 + H12_abs)**(-2))*(2*H12_abs)*(-H12_dq1)
+        K_dq2 = (-(H11*H22 + H12_abs)**(-2))*(2*H12_abs)*(-H12_dq2)
 
-        partials['q2_dotdot', 'q1'] = (-H11*K_dq1*h*q1_dot - H11*K*h_dq1*q1_dot) - (H12_dq1*K*h*q2_dot + H12*K_dq1*h*q2_dot + H12*K*h_dq1*q2_dot) + (H12_dq1*K*G1 + H12*K_dq1*G1 + H12*K*G1_dq1) - (H11*G2*K_dq1) + (H12_dq1*K + H12*K_dq1)*tau + (H11*K_dq1)*tau
-        partials['q2_dotdot', 'q2'] = (-H11*K_dq2*h*q1_dot - H11*K*h_dq2*q1_dot) - (H12_dq2*K*h*q2_dot + H12*K_dq2*h*q2_dot + H12*K*h_dq2*q2_dot) + (H12_dq2*K*G1 + H12*K_dq2*G1) - (H11*G2*K_dq2 + H11*G2_dq2*K) + (H12_dq2*K + H12*K_dq2)*tau + (H11*K_dq2)*tau
-        partials['q2_dotdot', 'q1_dot'] = -H11*K*h
-        partials['q2_dotdot', 'q2_dot'] = -H12*K*h
-        partials['q2_dotdot', 'tau'] = H12*K + H11*K
-        # jacobian['q1_dotdot', 'q2'] = 
+        partials['x3_dot', 'x1'] = (-x3**2)*((H12_dq1*K*h) + (H12*K_dq1*h) + (H12*K*h_dq1)) + ((x4**2)*H22)*((K_dq1*h) + (K*h_dq1)) - (H22*((K_dq1*G1) + (K*G1_dq1))) + G2*((H12_dq1*K) + (H12*K_dq1)) #- (H22*tau*(K_dq1)) - (tau*((H12_dq1*K) + (H12*K_dq1)))
+        partials['x3_dot', 'x2'] = (-x3**2)*((H12_dq2*K*h) + (H12*K_dq2*h) + (H12*K*h_dq2)) + ((x4**2)*H22)*((K_dq2*h) + (K*h_dq2)) - (H22*K_dq2*G1) + ((H12_dq2*K*G2) + (H12*K_dq2*G2) + (H12*K*G2_dq2)) #+ (tau*((H12_dq2*K) + (H12*K_dq2))) + (tau*H11*K_dq2)
+        partials['x3_dot', 'x3'] = -2*H12*K*h*x3
+        partials['x3_dot', 'x4'] = -2*H22*K*h*x4
+        #partials['x3_dot', 'tau'] = -(H22 + H12)*K
 
-
-
-"""
-3 link dynamics uses q1 q2 and q3
-"""
-class threeLinkDynamics(om.ExplicitComponent):
-    # phase with three link dynamics
-    def initialize(self):
-        self.options.declare('num_nodes', types=int)
-        self.options.declare('states_ref')
-        self.options.declare('g', default=9.81, desc='gravity const')
-
-    def setup(self):
-        nn = self.options['num_nodes']
-
-        # inputs
-        self.add_input('L', shape=(1,),units='m',desc="length of one leg") 
-
-        # length paramters
-        self.add_input('a1',shape=(1,),units='m',desc='shank length below point mass')
-        self.add_input('b1', shape=(1,),units='m', desc='shank length above point mass')
-
-        self.add_input('a2', shape=(1,),units='m', desc='thigh length below points mass')
-        self.add_input('b2', shape=(1,),units='m', desc='thigh length above point mass')
-
-        # q1, q2, and q3
-        self.add_input('q1', shape=(nn,),units='rad', desc='q1 angle')
-        self.add_input('q2', shape=(nn,),units='rad', desc='q2 angle')
-        self.add_input('q1_dot', shape=(nn,),units='rad/s', desc='q1 angular velocity')
-        self.add_input('q2_dot', shape=(nn,),units='rad/s', desc='q2 anglular velocity')
-        self.add_input('q3', shape=(nn,), units='rad', desc='q3 angle')
-        self.add_input('q3_dot', shape=(nn,), units='rad/s', desc='q3 anglular velocity')
+        partials['x4_dot', 'x1'] = (x3**2)*H11*((K_dq1*h) + (K*h_dq1)) + (-x4**2)*((H12_dq1*K*h) + (H12*K_dq1*h) + (H12*K*h_dq1)) + ((H12_dq1*K*G1) + (H12*K_dq1*G1) + (H12*K*G1_dq1)) - (H11*K_dq1*G2)
+        partials['x4_dot', 'x2'] = (x3**2)*H11*((K_dq2*h) + (K*h_dq2)) + (-x4**2)*((H12_dq2*K*h) + (H12*K_dq2*h) + (H12*K*h_dq2))+ G1*((H12_dq2*K) + (H12*K_dq2)) - (H11*((K_dq2*G2) + (K*G2_dq2)))
+        partials['x4_dot', 'x3'] = 2*H11*K*h*x3
+        partials['x4_dot', 'x4'] = 2*H12*K*h*x4
+        #partials['x4_dot', 'tau'] = (H11 + H12)*K
         
+        partials['x1_dot', 'x1'] = 0
+        partials['x1_dot', 'x2'] = 0
+        partials['x1_dot', 'x3'] = 1
+        partials['x1_dot', 'x4'] = 0
+        #partials['x1_dot', 'tau'] = 0
 
-        # masses
-        self.add_input('m_H', shape=(1,),units='kg', desc='hip mass')
-        self.add_input('m_t', shape=(1,),units='kg', desc='thigh mass')
-        self.add_input('m_s', shape=(1,),units='kg', desc='shank mass')
-
-        # applied torque
-        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
-
-        # outputs
-        # angular accelerations of q1 q2 q3 (state rates)
-        self.add_output('q1_dotdot_3', shape=(nn,), units='rad/s**2',desc='angular acceleration of q1')
-        self.add_output('q2_dotdot_3', shape=(nn,), units='rad/s**2',desc='angular acceleration of q2')
-        self.add_output('q3_dotdot_3', shape=(nn,), units='rad/s**2', desc='angular acc of q3')
-
-        ## partials
-        self.declare_partials(of=['*'], wrt=['q1', 'q1_dot', 'q2', 'q2_dot', 'tau', 'q3', 'q3_dot'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['q1', 'q1_dot', 'q2','q2_dot', 'q3', 'q3_dot'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['q1', 'q1_dot', 'q2','q2_dot', 'q3', 'q3_dot'], method='fd', step=1e-6)
-
-        #self.declare_partials(of=['*'], wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
-        #self.declare_coloring(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='cs', show_summary=False)
-        #self.set_check_partial_options(wrt=['a1', 'L', 'b1','a2','b2','m_H','m_t','m_s'], method='fd', step=1e-6)
-    
-
-    def compute(self, inputs, outputs):
-        g = self.options['g']
-        L = inputs['L']
-        a1 = inputs['a1']
-        a2 = inputs['a2']
-        b1 = inputs['b1']
-        b2 = inputs['b2']
-        m_H = inputs['m_H']
-        m_t = inputs['m_t']
-        m_s = inputs['m_s']
-        q1 = inputs['q1']
-        q2 = inputs['q2']
-        q3 = inputs['q3']
-        q1_dot = inputs['q1_dot']
-        q2_dot = inputs['q2_dot']
-        q3_dot = inputs['q3_dot']
-        tau = inputs['tau']
-        ##
-
-        ls = a1 + b1
-        lt = a2 + b2
-        H11 = m_s*a1**2 + m_t*(ls + a2)**2 + (m_H + m_s + m_t)*L**2
-        H12 = -(m_t*b2 + m_s*lt)*L*np.cos(q2 - q1)
-        H13 = -m_s*b1*L*np.cos(q3-q1)
-        H22 = m_t*b2**2 + m_s*lt**2
-        H23 = m_s*lt*b1*np.cos(q3-q2)
-        H33 = m_s*b1**2 # components of symmetric H matrix
-
-        h122 = -(m_t*b2 + m_s*lt)*L*np.sin(q1-q2) # components of B matrix
-        h133 = -m_s*b1*L*np.sin(q1-q3)
-        h211 = -h122
-        h233 = m_s*lt*b1*np.sin(q3-q2)
-        h311 = -h133
-        h322 = -h233
-
-        G1 = -(m_s*a1 + m_t*(ls+a2) + (m_H + m_s + m_t)*L)*g*np.sin(q1)
-        G2 = (m_t*b2 + m_s*lt)*g*np.sin(q2)
-        G3 = m_s*b1*g*np.sin(q3)
-
-        DH = H11*(H22*H33-H23**2) + H12*(H13*H23 - H12*H33) + H13*(H12*H23 - H22*H13) # determinite of matrix H
-
-        # components of adjoint of H matrix
-        A11 = H22*H33 - H23*H23; A12 = -(H12*H33 - H23*H13); A13 = H12*H23 - H13*H22; A21 = A12; A22 = H11*H33 - H13*H13; A23 = -(H11*H23 - H12*H13)
-        A31 = A13; A32 = A23; A33 = H11*H22 - H12*H12
-
-        # calcuate rates
-        outputs['q1_dotdot_3'] = (-((A12*h211*q1_dot + A13*h311*q1_dot) + (A11*h122*q2_dot + A13*h322*q2_dot) + (A11*h133*q3_dot + A12*h233*q3_dot) + A11*G1 + A12*G2 + A13*G3)  + (-A11 + A12 + A13)*tau)*(1/DH)
-        outputs['q2_dotdot_3'] = (-((A22*h211*q1_dot + A23*h311*q1_dot) + (A21*h122*q2_dot + A23*h322*q2_dot) + (A21*h133*q3_dot + A22*h233*q3_dot) + A21*G1 + A22*G2 + A23*G3) + (-A21 + A22 + A23)*tau)*(1/DH)
-        outputs['q3_dotdot_3'] = -(((A32*h211*q1_dot + A33*h311*q1_dot) + (A31*h122*q2_dot + A33*h322*q2_dot) + (A31*h133*q3_dot + A32*h233*q3_dot) +A31*G1 + A32*G2 + A33*G3) + (-A31 + A32 + A33)*tau)*(1/DH)
-
-        """ H = np.array([[H11, H12, H13], [H12, H22, H23], [H13, H23, H33]], dtype=float)
-        B = np.array([[0, h122*q2_dot, h133*q3_dot],[h211*q1_dot, 0, h233*q3_dot], [h311*q1_dot, h322*q2_dot, 0]], dtype=float)
-        G = np.array([[G1], [G2], [G3]], ddtype=float)
-        R = np.array([[-1], [1], [1]], dtype=float) # control matrix, come back and check...
-
-        qdotv = np.array([[q1_dot], [q2_dot], [q3_dot]], dtype=float)
-        
-        hinv = inv(H)
-
-        qvector = -(multi_dot(B, qdotv, hinv)) - np.dot(G, hinv) + np.dot(R, hinv)*tau
-
-        outputs['q1_dotdot'] = qvector[0]
-        outputs['q2_dotdot'] = qvector[1]
-        outputs['q3_dotdot'] = qvector[2]   """
-
-    def computs_partials(self, inputs, outputs):
-        """ this does not do anything """
-
-        
-
-        g = self.options['g']
-        L = inputs['L']
-        a1 = inputs['a1']
-        a2 = inputs['a2']
-        b1 = inputs['b1']
-        b2 = inputs['b2']
-        m_H = inputs['m_H']
-        m_t = inputs['m_t']
-        m_s = inputs['m_s']
-        q1 = inputs['q1']
-        q2 = inputs['q2']
-        q3 = inputs['q3']
-        q1_dot = inputs['q1_dot']
-        q2_dot = inputs['q2_dot']
-        q3_dot = inputs['q3_dot']
-        tau = inputs['tau']
+        partials['x2_dot', 'x1'] = 0
+        partials['x2_dot', 'x2'] = 0
+        partials['x2_dot', 'x3'] = 0
+        partials['x2_dot', 'x4'] = 1
+        #partials['x2_dot', 'tau'] = 0
 
 class CostFunc(om.ExplicitComponent):
     # Computes the Cost
@@ -307,61 +184,55 @@ class CostFunc(om.ExplicitComponent):
 
     def setup(self):
         nn = self.options['num_nodes']
-        self.add_input('q3', shape=(nn,),units='rad', desc='q3')
-        self.add_input('q2', shape=(nn,),units='rad', desc='q2')
-        self.add_input('q1', shape=(nn,),units='rad', desc='q1')
+        self.add_input('x1', shape=(nn,),units='rad', desc='q1')
+        self.add_input('x2', shape=(nn,),units='rad', desc='q2')
         self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
         
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
         
-        self.declare_partials(of=['costrate'], wrt=['q1', 'q2', 'q3', 'tau',], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_partials(of=['costrate'], wrt=['x1', 'x2', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
         #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
         #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
 
     def compute(self, inputs, outputs,):
         tau = inputs['tau']
-        q1 = inputs['q1']
-        q2 = inputs['q2']
-        q3 = inputs['q3']
+        x1 = inputs['x1']
+        x2 = inputs['x2']
         states_ref = self.options['states_ref']
 
-        q1ref = states_ref['q1'] # reference states (final)
-        q2ref = states_ref['q2']
-        q3ref = states_ref['q3']
+        x1ref = states_ref['x1'] # reference states (final)
+        x2ref = states_ref['x2']
 
         # distance of current states from final states
-        dq1 = q1 - q1ref
-        dq2 = q2-q2ref
-        dq3 = q3-q3ref
+        dx1 = x1 - x1ref
+        dx2 = x2-x2ref
 
-        outputs['costrate'] = tau**2 + dq1**2 + dq2**2 + dq3**2
+        outputs['costrate'] = dx1**2 + dx2**2 + tau**2
 
     def compute_partials(self, inputs, partials,):
-        states_ref = self.options['states_ref']
         tau = inputs['tau']
-        q1 = inputs['q1']
-        q2 = inputs['q2']
-        q3 = inputs['q3']
+        x1 = inputs['x1']
+        x2 = inputs['x2']
+        states_ref = self.options['states_ref']
 
-        q1ref = states_ref['q1'] # reference states (final)
-        q2ref = states_ref['q2']
-        q3ref = states_ref['q3']
+        x1ref = states_ref['x1'] # reference states (final)
+        x2ref = states_ref['x2']
 
         # distance of current states from final states
-        dq1 = q1 - q1ref
-        dq2 = q2-q2ref
-        dq3 = q3-q3ref
+        dx1 = x1 - x1ref
+        dx2 = x2-x2ref
 
+    
         partials['costrate', 'tau'] = 2*tau
-        partials['costrate', 'q1'] = 2*dq1
-        partials['costrate', 'q2'] = 2*dq2
-        partials['costrate', 'q3'] = 2*dq3
+        partials['costrate', 'x1'] = 2*dx1
+        partials['costrate', 'x2'] = 2*dx2
+        
 
         
 def check_partials():
     nn = 3
-    states_ref = {'q1': 10*(np.pi / 180), 'q1_dot': 0, 'q2': 20*(np.pi / 180), 'q2_dot': 0, 'q3':20*(np.pi / 180)}
+    states_ref = {'x1': 10*(np.pi / 180), 'x3': 0, 'x2': 20*(np.pi / 180), 'x4': 0}
     p = om.Problem()
     p.model.add_subsystem('dynamics', kneedWalker(num_nodes=nn, states_ref=states_ref),promotes=['*'])
 
@@ -374,13 +245,11 @@ def check_partials():
     p.model.set_input_defaults('m_t', val=0.5, units='kg')
     p.model.set_input_defaults('m_s', val=0.05, units='kg')"""
 
-    p.model.set_input_defaults('q1', val=np.random.random(nn))
-    p.model.set_input_defaults('q1_dot', val=np.random.random(nn))
-    p.model.set_input_defaults('q2', val=np.random.random(nn))
-    p.model.set_input_defaults('q2_dot', val=np.random.random(nn))
+    p.model.set_input_defaults('x1', val=np.random.random(nn))
+    p.model.set_input_defaults('x3', val=np.random.random(nn))
+    p.model.set_input_defaults('x2', val=np.random.random(nn))
+    p.model.set_input_defaults('x4', val=np.random.random(nn))
     p.model.set_input_defaults('tau', val=np.random.random(nn))
-    p.model.set_input_defaults('q3', val=np.random.random(nn))
-    p.model.set_input_defaults('q3_dot', val=np.random.random(nn))
 
 
     # check partials

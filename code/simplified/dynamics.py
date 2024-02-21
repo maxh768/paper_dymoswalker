@@ -102,7 +102,7 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2 - x2ref
 
-        outputs['costrate'] = dx1**2 + dx2**2
+        outputs['costrate'] = dx1**2 + dx2**2 + tau**2
 
     def compute_partials(self, inputs, partials):
         tau = inputs['tau']
@@ -116,7 +116,7 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2 - x2ref
 
-        partials['costrate', 'tau'] = 0#2*tau
+        partials['costrate', 'tau'] = 2*tau
         partials['costrate', 'x1'] = 2*dx1
         partials['costrate', 'x2'] = 2*dx2
 
@@ -126,15 +126,6 @@ def check_partials():
     states_ref = {'x1': 0, 'x2':0}
     p = om.Problem()
     p.model.add_subsystem('system', system(num_nodes=nn, states_ref=states_ref),promotes=['*'])
-
-    """p.model.set_input_defaults('L', val=1, units='m')
-    p.model.set_input_defaults('a1', val=0.375, units='m')
-    p.model.set_input_defaults('b1', val=0.125, units='m')
-    p.model.set_input_defaults('a2', val=0.175, units='m')
-    p.model.set_input_defaults('b2', val='0.325', units='m')
-    p.model.set_input_defaults('m_H', val=0.5, units='kg')
-    p.model.set_input_defaults('m_t', val=0.5, units='kg')
-    p.model.set_input_defaults('m_s', val=0.05, units='kg')"""
 
     p.model.set_input_defaults('x1', val=np.random.random(nn))
     p.model.set_input_defaults('x2', val=np.random.random(nn))
