@@ -3,6 +3,8 @@ import openmdao.api as om
 from numpy.linalg import inv
 from numpy.linalg import multi_dot
 
+np.seterr(divide='ignore', invalid='ignore')
+
 class system(om.Group):
 
     def initialize(self):
@@ -12,72 +14,9 @@ class system(om.Group):
     def setup(self):
         nn=self.options['num_nodes']
 
-        input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm', 'tau']
+        input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm']
         self.add_subsystem('lockedknee', dynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
         self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'tau'], promotes_outputs=['*'])
-
-
-class transition(om.ExplicitComponent):
-
-    def initialize(self):
-        self.options.declare('num_nodes', types=int)
-        self.options.declare('states_ref', types=dict)
-        self.options.declare('g', default=9.81, desc='gravity constant')
-
-    def setup(self):
-        nn = self.options['num_nodes']
-
-        # inputs
-
-        # length paramters
-        self.add_input('a',shape=(1,),units='m')
-        self.add_input('b', shape=(1,),units='m')
-
-        """
-        x1 = q1, x2 = q2, x3 = q1_dot, x4 = q2_dot
-        """
-        self.add_input('x1', shape=(nn,), desc='q1')
-        self.add_input('x2', shape=(nn,), desc='q2')
-        self.add_input('x3', shape=(nn,), desc='q1 dot')
-        self.add_input('x4', shape=(nn,), desc='q2 dot')
-
-        # masses
-        self.add_input('m', shape=(1,),units='kg')
-        self.add_input('mh', shape=(1,),units='kg')
-
-        self.add_output('x1_new', shape=(nn,), desc='q1')
-        self.add_output('x2_new', shape=(nn,), desc='q2')
-        self.add_output('x3_new', shape=(nn,), desc='q1 dot')
-        self.add_output('x4_new', shape=(nn,), desc='q2 dot')
-       
-
-    def compute(self, inputs, outputs):
-        g = 9.81
-        a = inputs['a']
-        b = inputs['b']
-        mh = inputs['mh']
-        m = inputs['m']
-        x1 = inputs['x1']
-        x2 = inputs['x2']
-        x3 = inputs['x3']
-        x4 = inputs['x4']
-
-        l = a + b
-
-        alpha = -(x1+x2)
-        # calculating transition matrices for phase change
-        Q11_m = -m*a*b; Q12_m = -m*a*b + ((mh*l**2) + 2*m*a*l)*np.cos(2*alpha); Q22_m = Q11_m
-        Q11_p = m*b*(b - l*np.cos(2*alpha)); Q12_p = m*l*(l-b*np.cos(2*alpha)) + m*a**2 + mh*l**2; Q21_p = m*b**2; Q22_p = -m*b*l*np.cos(2*alpha)
-
-        kq_p = 1 / (Q11_p*Q22_p - Q12_p*Q21_p) # inverse constant
-
-        # transition matrix for velocities
-        P11 = kq_p*(Q22_p*Q11_m ); P12 = kq_p*(Q22_p*Q12_m - Q12_p*Q22_m); P21 = kq_p*(-Q21_p*Q11_m); P22 = kq_p*(Q11_p*Q22_m)
-
-        outputs['x1_new'] = x2
-        outputs['x2_new'] = x1
-        outputs['x3_new'] = P21*x4 + P22*x3
-        outputs['x4_new'] = P11*x4 + P12*x3
 
 
 
@@ -97,6 +36,7 @@ class dynamics(om.ExplicitComponent):
         self.add_input('a',shape=(1,),units='m')
         self.add_input('b', shape=(1,),units='m')
 
+
         """
         x1 = q1, x2 = q2, x3 = q1_dot, x4 = q2_dot
         """
@@ -113,7 +53,7 @@ class dynamics(om.ExplicitComponent):
 
 
         # applied torque - torque is applied equally and opposite to each leg
-        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
+        #self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
 
 
         # outputs
@@ -125,12 +65,18 @@ class dynamics(om.ExplicitComponent):
         self.add_output('x3_dot', shape=(nn,), units='rad/s**2',desc='q1 dotdot')
         self.add_output('x4_dot', shape=(nn,), units='rad/s**2',desc='q2 dotdot')
 
-        self.add_output('alpha', shape=(nn,), units='rad', desc='angle between legs')
-
+        # transition eqs
+        #self.add_output('alpha', shape=(nn,), units='rad', desc='angle between legs')
+        self.add_output('phi_bounds', shape=(nn,), units='rad', desc='phi contraint equation')
+        self.add_output('alpha_bounds', shape=(nn,), units='rad', desc='alpha contraint equation')
+        self.add_output('x3changer', shape=(nn,), units='rad', desc='multiplier for x3 to change at transition')
+        self.add_output('x4changer', shape=(nn,), units='rad', desc='multiplier for x4 to change at transition')
+        
+        
         #partials
-        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='fd', step=1e-6)
+        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_coloring(wrt=['x1', 'x2', 'x3', 'x4'], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['x1', 'x2', 'x3', 'x4'], method='fd', step=1e-6)
 
         self.declare_partials(of=['*'], wrt=['m', 'mh', 'a', 'b'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
         self.declare_coloring(wrt=['m', 'mh', 'a', 'b'], method='cs', show_summary=False)
@@ -150,24 +96,51 @@ class dynamics(om.ExplicitComponent):
 
         l = a + b
 
-        # q1 = Ost = x1, q2 = Osw = x2
+        # q1 = Ons = x1, q2 = Os = x2 --- x1 = q1 is the back leg, x2 = q2 is the front leg, angles measured +CCW from vertical axis
         # mtrix components
-        H11 = (mh + m)*(l**2) + m*a**2
-        H12 = -m*l*b*np.cos(x1 - x2)
-        H22 = m*b**2
-        h = m*l*b*np.sin(x1-x2)
-        G1 = (mh*l + m*a + m*l)*g*np.sin(x1)
-        G2 = -m*b*g*np.sin(x2)
+        H22 = (mh + m)*(l**2) + m*a**2
+        H12 = -m*l*b*np.cos(x2 - x1)
+        H11 = m*b**2
+        h = -m*l*b*np.sin(x1-x2)
+        G2 = -(mh*l + m*a + m*l)*g*np.sin(x2)
+        G1 = m*b*g*np.sin(x1)
 
-        K = 1 / (H11*H22 - H12**2) # inverse constant
+        K = 1 / (H11*H22 - (H12**2)) # inverse constant
 
         outputs['x1_dot'] = x3
         outputs['x2_dot'] = x4
         outputs['x3_dot'] = (H12*K*h*x3**2) + (H22*K*h*x4**2) - H22*K*G1 + H12*K*G2 #- (H22 + H12)*K*tau
         outputs['x4_dot'] = (-H11*K*h*x3**2) - (H12*K*h*x4**2) + H12*K*G1 - H11*K*G2 #+ ((H12 + H11)*K*tau)
+
+        # calculating cooridnates of points relative to stance foot
+        # this will allow us to find alpha at any point in time
+        xhip = -l*np.sin(x2) #changes sign
+        yhip = l*np.cos(x2) # always positive
+        x_hip2swing = l*np.sin(x1) # changes sign
+        y_hip2swing = -l*np.cos(x1) # always negative
+        x_swing = xhip+x_hip2swing # x and y coords of swing foot wrt stance foot
+        y_swing = yhip+y_hip2swing # always positive
+        L_stance2swing = np.sqrt(x_swing**2+y_swing**2)
+        theta_inter = (np.pi/2) - np.tan(y_swing/np.abs(x_swing))
+        theta_R = theta_inter - x2 # the angle between the two legs on the right side of the triangle
+
+        alpha = (np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
         
-        outputs['alpha'] = x1 + x2
+        # auxillary outputs for transition and bounds
+        outputs['phi_bounds'] = x1 + x2
+        outputs['alpha_bounds'] = -2*alpha + x2 - x1 #might be -2alpha instead of 2 alpha - TEST
+
+        # calculating transition matrices for phase change
+        Q11_m = -m*a*b; Q12_m = -m*a*b + ((mh*l**2) + 2*m*a*l)*np.cos(2*alpha); Q22_m = Q11_m
+        Q11_p = m*b*(b - l*np.cos(2*alpha)); Q12_p = m*l*(l-b*np.cos(2*alpha)) + m*a**2 + mh*l**2; Q21_p = m*b**2; Q22_p = -m*b*l*np.cos(2*alpha)
+
+        kq_p = 1 / (Q11_p*Q22_p - Q12_p*Q21_p) # inverse constant
+
+        # transition matrix for velocities
+        P11 = kq_p*(Q22_p*Q11_m ); P12 = kq_p*(Q22_p*Q12_m - Q12_p*Q22_m); P21 = kq_p*(-Q21_p*Q11_m); P22 = kq_p*(Q11_p*Q22_m)
         
+        outputs['x3changer'] = P11*x3 + P12*x4
+        outputs['x4changer'] = P21*x3 + P22*x4
 
     """def compute_partials(self, inputs, partials):
        # computes analytical partials 
@@ -251,12 +224,12 @@ class CostFunc(om.ExplicitComponent):
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
         
-        self.declare_partials(of=['costrate'], wrt=['x1', 'x2'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_partials(of=['costrate'], wrt=['x1', 'x2', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
         #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
         #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
 
     def compute(self, inputs, outputs,):
-        #tau = inputs['tau']
+        tau = inputs['tau']
         x1 = inputs['x1']
         x2 = inputs['x2']
         states_ref = self.options['states_ref']
@@ -268,10 +241,10 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2-x2ref
 
-        outputs['costrate'] = dx1**2 + dx2**2  #+ tau**2
+        outputs['costrate'] = tau**2#dx1**2 + dx2**2  #+ tau**2
 
     def compute_partials(self, inputs, partials,):
-        #tau = inputs['tau']
+        tau = inputs['tau']
         x1 = inputs['x1']
         x2 = inputs['x2']
         states_ref = self.options['states_ref']
@@ -284,9 +257,9 @@ class CostFunc(om.ExplicitComponent):
         dx2 = x2-x2ref
         
     
-        #partials['costrate', 'tau'] = 2*tau
-        partials['costrate', 'x1'] = 2*dx1
-        partials['costrate', 'x2'] = 2*dx2
+        partials['costrate', 'tau'] = 2*tau
+        #partials['costrate', 'x1'] = 2*dx1
+        #partials['costrate', 'x2'] = 2*dx2
 
 
 def check_partials():
