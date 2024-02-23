@@ -241,7 +241,7 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2-x2ref
 
-        outputs['costrate'] = tau**2#dx1**2 + dx2**2  #+ tau**2
+        outputs['costrate'] = tau**2
 
     def compute_partials(self, inputs, partials,):
         tau = inputs['tau']
@@ -256,7 +256,7 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2-x2ref
         
-    
+
         partials['costrate', 'tau'] = 2*tau
         #partials['costrate', 'x1'] = 2*dx1
         #partials['costrate', 'x2'] = 2*dx2
