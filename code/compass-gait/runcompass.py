@@ -106,11 +106,9 @@ def main():
     
     # transition boudary contraints
     lockphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
-    #lockphase.add_boundary_constraint('alpha_bounds', loc='final', equals=0, units='rad')
 
     # transition boudary contraints
     initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
-    #initphase.add_boundary_constraint('alpha_bounds', loc='final', equals=0, units='rad')
 
 
     lockphase.add_objective('cost')
@@ -188,6 +186,19 @@ def main():
     ax.set_ylabel('q1 angular velocity')
 
     plt.savefig('limitcycle_compass.pdf')
+
+    ## plot motion
+
+    # get states
+    x1arr = x_data_x1
+    x2arr = x_data_x2
+    num_points = len(x1arr)
+
+    #plot animation
+    from animate import animate_compass
+    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True)
+
+
 
 if __name__ == '__main__':
     main()

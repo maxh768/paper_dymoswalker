@@ -114,7 +114,7 @@ class dynamics(om.ExplicitComponent):
 
         # calculating cooridnates of points relative to stance foot
         # this will allow us to find alpha at any point in time
-        xhip = -l*np.sin(x2) #changes sign
+        """xhip = -l*np.sin(x2) #changes sign
         yhip = l*np.cos(x2) # always positive
         x_hip2swing = l*np.sin(x1) # changes sign
         y_hip2swing = -l*np.cos(x1) # always negative
@@ -122,13 +122,12 @@ class dynamics(om.ExplicitComponent):
         y_swing = yhip+y_hip2swing # always positive
         L_stance2swing = np.sqrt(x_swing**2+y_swing**2)
         theta_inter = (np.pi/2) - np.tan(y_swing/np.abs(x_swing))
-        theta_R = theta_inter - x2 # the angle between the two legs on the right side of the triangle
+        theta_R = theta_inter - x2 # the angle between the two legs on the right side of the triangle """
 
-        alpha = (np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
+        alpha = -(x1 - x2) / 2  #(np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
         
         # auxillary outputs for transition and bounds
         outputs['phi_bounds'] = x1 + x2
-        outputs['alpha_bounds'] = -2*alpha + x2 - x1 #might be -2alpha instead of 2 alpha - TEST
 
         # calculating transition matrices for phase change
         Q11_m = -m*a*b; Q12_m = -m*a*b + ((mh*l**2) + 2*m*a*l)*np.cos(2*alpha); Q22_m = Q11_m
