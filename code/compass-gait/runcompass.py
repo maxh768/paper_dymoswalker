@@ -32,7 +32,7 @@ def main():
     p.driver.options['optimizer'] = 'IPOPT'
     p.driver.options['print_results'] = False
     p.driver.declare_coloring(orders=None)
-    p.driver.opt_settings['max_iter'] = 500
+    p.driver.opt_settings['max_iter'] = 300
     p.driver.opt_settings['alpha_for_y'] = 'safer-min-dual-infeas'
     p.driver.opt_settings['print_level'] = 5
     # prob.driver.opt_settings['nlp_scaling_method'] = 'gradient-based'
@@ -46,7 +46,7 @@ def main():
     p.driver.opt_settings['mu_min'] = 1e-8   # only for adaptive
     p.driver.opt_settings['bound_mult_init_method'] = 'mu-based'
     # restortion phase
-    p.driver.opt_settings['required_infeasibility_reduction'] = 0.99
+    p.driver.opt_settings['required_infeasibility_reduction'] = 0.98
     p.driver.opt_settings['max_resto_iter'] = 100
 
 
@@ -85,6 +85,9 @@ def main():
     initphase.add_boundary_constraint('x3', loc='initial', equals=states_init['x3'])
     initphase.add_boundary_constraint('x4', loc='initial', equals=states_init['x4'])
 
+    # add transition initial conditions for lockphase
+    lockphase.add_boundary_constraint('x3changer', loc='initial', equals=0)
+    lockphase.add_boundary_constraint('x4changer', loc='initial', equals=0)
 
     # paramaters - same for both phases
     lockphase.add_parameter('a', val=a, units='m', static_target=True)
@@ -101,14 +104,16 @@ def main():
     # add auxilary outputs for both phases
     lockphase.add_timeseries_output('x3changer', output_name='x3changer', units='rad', timeseries='timeseries') 
     lockphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries') 
-    initphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries')
-    initphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries')
+    #initphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries')
+    #initphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries')
     
     # transition boudary contraints
-    lockphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
-
+    #lockphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
+    lockphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
     # transition boudary contraints
-    initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
+    #initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
+    initphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
+
 
 
     lockphase.add_objective('cost')
@@ -117,14 +122,14 @@ def main():
     # phase linkage contraints for init phase to looping phase
     traj.add_linkage_constraint('initphase', 'lockphase', 'x1', 'x2')
     traj.add_linkage_constraint('initphase', 'lockphase', 'x2', 'x1')
-    traj.add_linkage_constraint('initphase', 'lockphase', 'x4', 'x3')
-    traj.add_linkage_constraint('initphase', 'lockphase', 'x3', 'x4')
+    #traj.add_linkage_constraint('initphase', 'lockphase', 'x3', 'x4')
+    #traj.add_linkage_constraint('initphase', 'lockphase', 'x4', 'x3')
 
     # phase linkage contraints for looping phase
     traj.add_linkage_constraint('lockphase', 'lockphase', 'x1', 'x2')
     traj.add_linkage_constraint('lockphase', 'lockphase', 'x2', 'x1')
-    traj.add_linkage_constraint('lockphase', 'lockphase', 'x4', 'x3')
-    traj.add_linkage_constraint('lockphase', 'lockphase', 'x3', 'x4')
+    #traj.add_linkage_constraint('lockphase', 'lockphase', 'x3', 'x4')
+    #traj.add_linkage_constraint('lockphase', 'lockphase', 'x4', 'x3')
 
     
 
@@ -145,7 +150,7 @@ def main():
     p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
     p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
 
-
+    
     dm.run_problem(p, run_driver=True, simulate=True, make_plots=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
 
     #om.n2(p)
@@ -180,7 +185,7 @@ def main():
     ax.plot(x_data_x1, y_data_x1, linewidth=2.0)
     ax.plot(x_data_x2, y_data_x2, linewidth=2.0)
 
-    ax.set(xlim=(-1, 1), ylim=(-2, 2))
+    #ax.set(xlim=(-1, 1), ylim=(-2, 2))
 
     ax.set_xlabel('q1 angle')
     ax.set_ylabel('q1 angular velocity')

@@ -63,7 +63,7 @@ def animate_compass(x1, x2, a, b, phi, interval = 20, saveFig=False, gif_fps=20)
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(x1), interval=interval, repeat=True)
     if saveFig:
         anim.save("compass.gif", writer=animation.PillowWriter(fps=gif_fps))
-    plt.show()
+    #plt.show()
 
 
 if __name__ == '__main__':

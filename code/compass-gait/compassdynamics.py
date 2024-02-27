@@ -136,10 +136,10 @@ class dynamics(om.ExplicitComponent):
         kq_p = 1 / (Q11_p*Q22_p - Q12_p*Q21_p) # inverse constant
 
         # transition matrix for velocities
-        P11 = kq_p*(Q22_p*Q11_m ); P12 = kq_p*(Q22_p*Q12_m - Q12_p*Q22_m); P21 = kq_p*(-Q21_p*Q11_m); P22 = kq_p*(Q11_p*Q22_m)
+        P11 = kq_p*(Q22_p*Q11_m ); P12 = kq_p*(Q22_p*Q12_m - Q12_p*Q22_m); P21 = kq_p*(-Q21_p*Q11_m); P22 = kq_p*(-Q21_p*Q12_m + Q11_p*Q22_m)
         
-        outputs['x3changer'] = P11*x3 + P12*x4
-        outputs['x4changer'] = P21*x3 + P22*x4
+        outputs['x3changer'] = x3 - (P11*x3 + P12*x4)
+        outputs['x4changer'] = x4 - (P21*x3 + P22*x4)
 
     """def compute_partials(self, inputs, partials):
        # computes analytical partials 
