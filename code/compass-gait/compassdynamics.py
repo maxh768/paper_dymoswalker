@@ -14,7 +14,7 @@ class system(om.Group):
     def setup(self):
         nn=self.options['num_nodes']
 
-        input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm']
+        input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm', 'tau']
         self.add_subsystem('lockedknee', dynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
         self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'tau'], promotes_outputs=['*'])
 
@@ -53,7 +53,7 @@ class dynamics(om.ExplicitComponent):
 
 
         # applied torque - torque is applied equally and opposite to each leg
-        #self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
+        self.add_input('tau', shape=(nn,),units='N*m', desc='applied toruqe at hip')
 
 
         # outputs
@@ -92,7 +92,7 @@ class dynamics(om.ExplicitComponent):
         x2 = inputs['x2']
         x3 = inputs['x3']
         x4 = inputs['x4']
-        #tau = inputs['tau']
+        tau = inputs['tau']
 
         l = a + b
 
@@ -109,8 +109,8 @@ class dynamics(om.ExplicitComponent):
 
         outputs['x1_dot'] = x3
         outputs['x2_dot'] = x4
-        outputs['x3_dot'] = (H12*K*h*x3**2) + (H22*K*h*x4**2) - H22*K*G1 + H12*K*G2 #- (H22 + H12)*K*tau
-        outputs['x4_dot'] = (-H11*K*h*x3**2) - (H12*K*h*x4**2) + H12*K*G1 - H11*K*G2 #+ ((H12 + H11)*K*tau)
+        outputs['x3_dot'] = (H12*K*h*x3**2) + (H22*K*h*x4**2) - H22*K*G1 + H12*K*G2 #+ (H22 + H12)*K*tau
+        outputs['x4_dot'] = (-H11*K*h*x3**2) - (H12*K*h*x4**2) + H12*K*G1 - H11*K*G2 #- ((H12 + H11)*K*tau)
 
         # calculating cooridnates of points relative to stance foot
         # this will allow us to find alpha at any point in time
@@ -124,7 +124,7 @@ class dynamics(om.ExplicitComponent):
         theta_inter = (np.pi/2) - np.tan(y_swing/np.abs(x_swing))
         theta_R = theta_inter - x2 # the angle between the two legs on the right side of the triangle """
 
-        alpha = -(x1 - x2) / 2  #(np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
+        alpha = (x1 - x2) / 2  #(np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
         
         # auxillary outputs for transition and bounds
         outputs['phi_bounds'] = x1 + x2

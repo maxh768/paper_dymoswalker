@@ -17,13 +17,13 @@ def main():
     mh = 10
     m = 5
     l = a + b
-    phi = 0.0525 # slope - 3 degrees
+    phi = 0.05 # slope - 3 degrees
     phi_contraint = -2*phi
 
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning
     """
-    states_init = {'x1': 0, 'x3': 2, 'x2': 0, 'x4': -0.4} # initial conditions
+    states_init = {'x1': 0, 'x3': 1, 'x2': 0, 'x4': -0.2} # initial conditions
     states_final = {'x1': 0, 'x3': 0, 'x2': 0, 'x4': 0} # final guess
 
     p = om.Problem()
@@ -46,7 +46,7 @@ def main():
     p.driver.opt_settings['mu_min'] = 1e-8   # only for adaptive
     p.driver.opt_settings['bound_mult_init_method'] = 'mu-based'
     # restortion phase
-    p.driver.opt_settings['required_infeasibility_reduction'] = 0.98
+    p.driver.opt_settings['required_infeasibility_reduction'] = 0.99
     p.driver.opt_settings['max_resto_iter'] = 100
 
 
@@ -68,7 +68,7 @@ def main():
     lockphase.add_state('x4', fix_initial=False,  rate_source='x4_dot', units='rad/s')
     lockphase.add_state('cost', fix_initial=True, rate_source='costrate')
 
-    lockphase.add_control('tau', lower = 0, upper = 10, fix_initial=False, units='N*m') # add control torque
+    lockphase.add_control('tau', lower = -10, upper = 10, fix_initial=False, units='N*m') # add control torque
 
     #states for init phase
     initphase.add_state('x1', fix_initial=True, rate_source='x1_dot', units='rad')
@@ -89,6 +89,7 @@ def main():
     lockphase.add_boundary_constraint('x3changer', loc='initial', equals=0)
     lockphase.add_boundary_constraint('x4changer', loc='initial', equals=0)
 
+    
     # paramaters - same for both phases
     lockphase.add_parameter('a', val=a, units='m', static_target=True)
     lockphase.add_parameter('b', val=b, units='m', static_target=True)
@@ -101,18 +102,13 @@ def main():
     initphase.add_parameter('mh', val=mh, units='kg', static_target=True)
     initphase.add_parameter('m', val=m, units='kg', static_target=True)
 
-    # add auxilary outputs for both phases
-    lockphase.add_timeseries_output('x3changer', output_name='x3changer', units='rad', timeseries='timeseries') 
-    lockphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries') 
-    #initphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries')
-    #initphase.add_timeseries_output('x4changer', output_name='x4changer', units='rad', timeseries='timeseries')
     
     # transition boudary contraints
     #lockphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
     lockphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
     # transition boudary contraints
     #initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
-    initphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
+    #initphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
 
 
 
@@ -150,8 +146,9 @@ def main():
     p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
     p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
 
+
     
-    dm.run_problem(p, run_driver=True, simulate=True, make_plots=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
 
     #om.n2(p)
 
@@ -174,29 +171,48 @@ def main():
                   title='Time History',p_sol=p,p_sim=sim_sol)
     plt.savefig('compass_gait.pdf', bbox_inches='tight')
 
-    x_data_x1 = p.get_val('traj.lockphase.states:x1')
-    y_data_x1 = p.get_val('traj.lockphase.states:x3')
+    plot_results([('traj.initphase.timeseries.time','traj.lockphase.timeseries.states:x1','time', 'q1'),
+                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x2','time','q2'),
+                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x3','time','q1_dot'),
+                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x4','time','q2_dot'),
+                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau'),
+                  ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
+                  title='Time History',p_sol=p,p_sim=sim_sol)
+    plt.savefig('compass_gait.pdf', bbox_inches='tight')
 
-    x_data_x2 = p.get_val('traj.lockphase.states:x2')
-    y_data_x2 = p.get_val('traj.lockphase.states:x4')
+    x1_initphase = p.get_val('traj.initphase.states:x1')
+    x2_initphase = p.get_val('traj.initphase.states:x2')
+    x3_initphase = p.get_val('traj.initphase.states:x3')
+    x4_initphase = p.get_val('traj.initphase.states:x4')
+
+    x1_lockphase = p.get_val('traj.lockphase.states:x1')
+    x2_lockphase = p.get_val('traj.lockphase.states:x2')
+    x3_lockphase = p.get_val('traj.lockphase.states:x3')
+    x4_lockphase = p.get_val('traj.lockphase.states:x4')
+
 
     fig, ax = plt.subplots()
 
-    ax.plot(x_data_x1, y_data_x1, linewidth=2.0)
-    ax.plot(x_data_x2, y_data_x2, linewidth=2.0)
+    ax.plot(x1_initphase, x3_initphase, linewidth=1.0, label='initphase x1')
+    ax.plot(x2_initphase, x4_initphase, linewidth=1.0, label='initphase x2')
+
+    ax.plot(x1_lockphase, x3_lockphase, linewidth=1.0, label='lockphase x1')
+    ax.plot(x2_lockphase, x4_lockphase, linewidth=1.0, label='lockphase x2')
+
 
     #ax.set(xlim=(-1, 1), ylim=(-2, 2))
 
-    ax.set_xlabel('q1 angle')
-    ax.set_ylabel('q1 angular velocity')
+    ax.set_xlabel('angle')
+    ax.set_ylabel('angular velocity')
+    ax.legend()
 
     plt.savefig('limitcycle_compass.pdf')
 
     ## plot motion
 
     # get states
-    x1arr = x_data_x1
-    x2arr = x_data_x2
+    x1arr = np.concatenate((x1_initphase, x1_lockphase))
+    x2arr = np.concatenate((x2_initphase, x2_lockphase))
     num_points = len(x1arr)
 
     #plot animation
