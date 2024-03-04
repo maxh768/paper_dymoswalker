@@ -23,7 +23,7 @@ def main():
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning
     """
-    states_init = {'x1': 0, 'x3': 1, 'x2': 0, 'x4': -0.2} # initial conditions
+    states_init = {'x1': 0, 'x3': 2, 'x2': 0, 'x4': -0.2} # initial conditions
     states_final = {'x1': 0, 'x3': 0, 'x2': 0, 'x4': 0} # final guess
 
     p = om.Problem()
@@ -108,7 +108,6 @@ def main():
     lockphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
     # transition boudary contraints
     #initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
-    #initphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
 
 
 
@@ -121,7 +120,7 @@ def main():
     #traj.add_linkage_constraint('initphase', 'lockphase', 'x3', 'x4')
     #traj.add_linkage_constraint('initphase', 'lockphase', 'x4', 'x3')
 
-    # phase linkage contraints for looping phase
+    # phase linkage contra9ints for looping phase
     traj.add_linkage_constraint('lockphase', 'lockphase', 'x1', 'x2')
     traj.add_linkage_constraint('lockphase', 'lockphase', 'x2', 'x1')
     #traj.add_linkage_constraint('lockphase', 'lockphase', 'x3', 'x4')
@@ -169,16 +168,16 @@ def main():
                   ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau'),
                   ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.savefig('compass_gait.pdf', bbox_inches='tight')
+    plt.savefig('compassgait_lockhpase.pdf', bbox_inches='tight')
 
-    plot_results([('traj.initphase.timeseries.time','traj.lockphase.timeseries.states:x1','time', 'q1'),
-                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x2','time','q2'),
-                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x3','time','q1_dot'),
-                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x4','time','q2_dot'),
-                  ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau'),
-                  ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
+    plot_results([('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x1','time', 'q1'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x2','time','q2'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x3','time','q1_dot'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x4','time','q2_dot'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.controls:tau','time','tau'),
+                  ('traj.initphase.timeseries.time', 'traj.initphase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.savefig('compass_gait.pdf', bbox_inches='tight')
+    plt.savefig('compassgait_initphase.pdf', bbox_inches='tight')
 
     x1_initphase = p.get_val('traj.initphase.states:x1')
     x2_initphase = p.get_val('traj.initphase.states:x2')

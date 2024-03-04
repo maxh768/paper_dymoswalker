@@ -3,8 +3,6 @@ import openmdao.api as om
 from numpy.linalg import inv
 from numpy.linalg import multi_dot
 
-np.seterr(divide='ignore', invalid='ignore')
-
 class system(om.Group):
 
     def initialize(self):
@@ -124,7 +122,7 @@ class dynamics(om.ExplicitComponent):
         theta_inter = (np.pi/2) - np.tan(y_swing/np.abs(x_swing))
         theta_R = theta_inter - x2 # the angle between the two legs on the right side of the triangle """
 
-        alpha = (x1 - x2) / 2  #(np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
+        alpha = np.abs((x1 - x2)) / 2  #(np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
         
         # auxillary outputs for transition and bounds
         outputs['phi_bounds'] = x1 + x2
