@@ -5,6 +5,7 @@ from compassdynamics import system
 import matplotlib.pyplot as plt
 from dymos.examples.plotting import plot_results
 import numpy as np
+from numpy.linalg import inv
 
 def main():
     duration_lockphase = 1 # duration of locked knee phase
@@ -25,15 +26,18 @@ def main():
     """
 
     #original initial conditions
-    states_init = [0, 0, 1, -0.2]
+    states_init = [0, 0, 2, -0.4]
+
+    # number of iterations
+    iterations = 10
 
     #create plotting arrays
-    x1series = [0, 0, 0]
-    x2series = [0, 0, 0]
-    x3series = [0, 0, 0]
-    x4series = [0, 0, 0]
+    x1series = [0]*iterations
+    x2series = [0]*iterations
+    x3series = [0]*iterations
+    x4series = [0]*iterations
 
-    for i in range(3):
+    for i in range(iterations):
 
         
         states_ref = {'x1': states_init[0], 'x3': states_init[1], 'x2': states_init[2], 'x4': states_init[3]}
@@ -98,8 +102,8 @@ def main():
 
         #interpolate values onto traj
         p.set_val('traj.lockphase.states:x1', lockphase.interp(ys=[states_init[0], 0], nodes='state_input'), units='rad')
-        p.set_val('traj.lockphase.states:x3', lockphase.interp(ys=[states_init[1], 0], nodes='state_input'), units='rad/s')
-        p.set_val('traj.lockphase.states:x2', lockphase.interp(ys=[states_init[2], 0], nodes='state_input'), units='rad')
+        p.set_val('traj.lockphase.states:x3', lockphase.interp(ys=[states_init[2], 0], nodes='state_input'), units='rad/s')
+        p.set_val('traj.lockphase.states:x2', lockphase.interp(ys=[states_init[1], 0], nodes='state_input'), units='rad')
         p.set_val('traj.lockphase.states:x4', lockphase.interp(ys=[states_init[3], 0], nodes='state_input'), units='rad/s')
         p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
         p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
@@ -124,6 +128,8 @@ def main():
         x2_end = p.get_val('traj.lockphase.states:x2')[-1]
         x3_end = p.get_val('traj.lockphase.states:x3')[-1]
         x4_end = p.get_val('traj.lockphase.states:x4')[-1]
+        x3_end = x3_end[0]
+        x4_end = x4_end[0]
 
         #get timeseries for animation and plotting
         x1series[i] = p.get_val('traj.lockphase.states:x1')
@@ -138,23 +144,32 @@ def main():
         """
 
         # calculate alpha at end of gait
-        alpha = np.abs((x1_end - x2_end)) / 2
+        alpha = np.abs((x2_end[0] - x1_end[0])) / 2
+        print('alpha: ', np.rad2deg(alpha))
 
-        # calculating transition matrices for phase change
-        Q11_m = -m*a*b; Q12_m = -m*a*b + ((mh*l**2) + 2*m*a*l)*np.cos(2*alpha); Q22_m = Q11_m
-        Q11_p = m*b*(b - l*np.cos(2*alpha)); Q12_p = m*l*(l-b*np.cos(2*alpha)) + m*a**2 + mh*l**2; Q21_p = m*b**2; Q22_p = -m*b*l*np.cos(2*alpha)
+        # Q+ matrix
+        Qp11 = m*b*(b-l*np.cos(2*alpha))
+        Qp12 = m*l*(l-b*np.cos(2*alpha)) + m*a**2 + mh*l**2
+        Qp21 = m*b**2
+        Qp22 = -m*b*l*np.cos(2*alpha)
 
-        kq_p = 1 / (Q11_p*Q22_p - Q12_p*Q21_p) # inverse constant
+        Qm11 = -m*a*b
+        Qm12 = -m*a*b + (mh*l**2 + 2*m*a*l)*np.cos(2*alpha)
+        Qm21 = 0
+        Qm22 = -m*a*b
 
-        # transition matrix for velocities
-        P11 = kq_p*(Q22_p*Q11_m ); P12 = kq_p*(Q22_p*Q12_m - Q12_p*Q22_m); P21 = kq_p*(-Q21_p*Q11_m); P22 = kq_p*(-Q21_p*Q12_m + Q11_p*Q22_m)
+        Qplus = np.array([[Qp11, Qp12], [Qp21, Qp22]])
+        Qminus = np.array([[Qm11, Qm12], [Qm21, Qm22]])
 
-        newx3 = (P11*x3_end[0] + P12*x4_end[0])
-        newx4 = (P21*x3_end[0] + P22*x4_end[0])
+        Qplus_inverted = inv(Qplus)
 
-        print('type ', type(x1_end))
+        H = np.dot(Qplus_inverted, Qminus)
+        print("Matrix H: ", H)
 
-        states_init = [x2_end[0], x1_end[0], newx3[0], newx4[0]]
+        newx3 = H[0,0]*x3_end + H[0, 1]*x4_end
+        newx4 = H[1,0]*x3_end + H[1, 1]*x4_end
+
+        states_init = [x2_end[0], x1_end[0], newx3, newx4]
         
 
     #end for loop
@@ -162,17 +177,27 @@ def main():
     #plot limit cycle
     fig, ax = plt.subplots()
 
-    pos = np.concatenate((x1series[0], x2series[1], x1series[2]))
-    velo = np.concatenate((x3series[0], x4series[1], x3series[2]))
+    x1arr = x1series[0]
+    x2arr = x2series[0]
+    x3arr = x3series[0]
+    x4arr = x4series[0]
 
-    ax.plot(pos, velo, linewidth=1.0, label='swing foot')
+    for i in range(iterations-1):
+        x1arr = np.concatenate((x1arr, x1series[i+1]))
+        x2arr = np.concatenate((x2arr, x2series[i+1]))
+        x3arr = np.concatenate((x3arr, x3series[i+1]))
+        x4arr = np.concatenate((x4arr, x4series[i+1]))
+
+
+    ax.plot(x1arr, x3arr, linewidth=1.0, label='swing foot')
+    ax.plot(x2arr, x4arr, linewidth=1.0, label='stance foot')
     ax.set_xlabel('angle')
     ax.set_ylabel('angular velocity')
+    ax.legend()
     plt.savefig('limitcycle_compass.pdf')
+    
 
     # animate motion
-    x1arr = np.concatenate((x1series[0], x1series[1], x1series[2]))
-    x2arr = np.concatenate((x2series[0], x2series[1], x2series[2]))
     num_points = len(x1arr)
     from animate import animate_compass
     animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True)

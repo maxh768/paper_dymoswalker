@@ -45,9 +45,10 @@ def animate_compass(x1, x2, a, b, phi, interval = 20, saveFig=False, gif_fps=20)
         ax.clear()
 
         #plot slanted floor from initial swing leg pos to final swing leg pos
-        ax.plot([0, x_swing[1]], [0, y_swing[1]], 'k')
-        xswinglen = len(x_swing) - 1
-        ax.plot([0, x_swing[xswinglen]], [0, y_swing[xswinglen]], 'k')
+        ax.plot([0, 0], [0, 0], 'k')
+        ax.plot([0, 0.8], [0, -0.04], 'k')
+        ax.plot([0, 0], [0, 0], 'k')
+        ax.plot([0, -0.8], [0, 0.04], 'k')
 
         # plot stance leg
         stanceleg = ax.plot([0, x_hip[i]], [0, y_hip[i]], 'o-', lw=2, color='C0')
