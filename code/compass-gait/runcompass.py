@@ -8,7 +8,7 @@ import numpy as np
 
 
 def main():
-    duration_lockphase = 3 # duration of locked knee phase
+    duration_lockphase = 1 # duration of locked knee phase
 
     # defining paramters of the legged walker
 
@@ -17,13 +17,13 @@ def main():
     mh = 10
     m = 5
     l = a + b
-    phi = 0.05 # slope - 3 degrees
+    phi = 0.07 # slope - 3 degrees
     phi_contraint = -2*phi
 
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning
     """
-    states_init = {'x1': 0, 'x3': 2, 'x2': 0, 'x4': -0.2} # initial conditions
+    states_init = {'x1': 0, 'x3': 2, 'x2': 0, 'x4': -0.4} # initial conditions
     states_final = {'x1': 0, 'x3': 0, 'x2': 0, 'x4': 0} # final guess
 
     p = om.Problem()
@@ -61,7 +61,11 @@ def main():
     lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=20, order=3), ode_init_kwargs={'states_ref': states_final}))
     lockphase.set_time_options(fix_initial=False, fix_duration=False, units='s') # set time options for simulation
 
-    #states for looping phase
+    # add 2nd lockphase
+    lockphase2 = traj.add_phase('lockphase2', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=20, order=3), ode_init_kwargs={'states_ref': states_final}))
+    lockphase2.set_time_options(fix_initial=False, fix_duration=False, units='s') # set time options for simulation
+
+    #states for lockphase 1 phase
     lockphase.add_state('x1', fix_initial=False, rate_source='x1_dot', units='rad')
     lockphase.add_state('x3', fix_initial=False, rate_source='x3_dot', units='rad/s')
     lockphase.add_state('x2', fix_initial=False, rate_source='x2_dot', units='rad')
@@ -69,6 +73,15 @@ def main():
     lockphase.add_state('cost', fix_initial=True, rate_source='costrate')
 
     lockphase.add_control('tau', lower = -10, upper = 10, fix_initial=False, units='N*m') # add control torque
+
+    #states for lockphase 2 phase
+    lockphase2.add_state('x1', fix_initial=False, rate_source='x1_dot', units='rad')
+    lockphase2.add_state('x3', fix_initial=False, rate_source='x3_dot', units='rad/s')
+    lockphase2.add_state('x2', fix_initial=False, rate_source='x2_dot', units='rad')
+    lockphase2.add_state('x4', fix_initial=False,  rate_source='x4_dot', units='rad/s')
+    lockphase2.add_state('cost', fix_initial=True, rate_source='costrate')
+
+    lockphase2.add_control('tau', lower = -10, upper = 10, fix_initial=False, units='N*m') # add control torque
 
     #states for init phase
     initphase.add_state('x1', fix_initial=True, rate_source='x1_dot', units='rad')
@@ -89,6 +102,10 @@ def main():
     lockphase.add_boundary_constraint('x3changer', loc='initial', equals=0)
     lockphase.add_boundary_constraint('x4changer', loc='initial', equals=0)
 
+    # add transition initial conditions for lockphase2
+    lockphase2.add_boundary_constraint('x3changer', loc='initial', equals=0)
+    lockphase2.add_boundary_constraint('x4changer', loc='initial', equals=0)
+
     
     # paramaters - same for both phases
     lockphase.add_parameter('a', val=a, units='m', static_target=True)
@@ -97,21 +114,30 @@ def main():
     lockphase.add_parameter('m', val=m, units='kg', static_target=True)
 
     # paramaters - same for both phases
+    lockphase2.add_parameter('a', val=a, units='m', static_target=True)
+    lockphase2.add_parameter('b', val=b, units='m', static_target=True)
+    lockphase2.add_parameter('mh', val=mh, units='kg', static_target=True)
+    lockphase2.add_parameter('m', val=m, units='kg', static_target=True)
+
+    # paramaters - same for both phases
     initphase.add_parameter('a', val=a, units='m', static_target=True)
     initphase.add_parameter('b', val=b, units='m', static_target=True)
     initphase.add_parameter('mh', val=mh, units='kg', static_target=True)
     initphase.add_parameter('m', val=m, units='kg', static_target=True)
 
-    
+
     # transition boudary contraints
-    #lockphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
+    lockphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
     lockphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
+
+    lockphase2.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
+    lockphase2.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
     # transition boudary contraints
-    #initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
+    initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
 
 
 
-    lockphase.add_objective('cost')
+    lockphase2.add_objective('cost')
 
 
     # phase linkage contraints for init phase to looping phase
@@ -120,11 +146,17 @@ def main():
     #traj.add_linkage_constraint('initphase', 'lockphase', 'x3', 'x4')
     #traj.add_linkage_constraint('initphase', 'lockphase', 'x4', 'x3')
 
+    traj.add_linkage_constraint('lockphase', 'lockphase2', 'x1', 'x2')
+    traj.add_linkage_constraint('lockphase', 'lockphase2', 'x2', 'x1')
+    #traj.add_linkage_constraint('lockphase', 'lockphase2', 'x3', 'x4')
+    #traj.add_linkage_constraint('lockphase', 'lockphase2', 'x4', 'x3')
+
+
     # phase linkage contra9ints for looping phase
-    traj.add_linkage_constraint('lockphase', 'lockphase', 'x1', 'x2')
-    traj.add_linkage_constraint('lockphase', 'lockphase', 'x2', 'x1')
-    #traj.add_linkage_constraint('lockphase', 'lockphase', 'x3', 'x4')
-    #traj.add_linkage_constraint('lockphase', 'lockphase', 'x4', 'x3')
+    #traj.add_linkage_constraint('lockphase2', 'lockphase2', 'x1', 'x2')
+    #traj.add_linkage_constraint('lockphase2', 'lockphase2', 'x2', 'x1')
+    #traj.add_linkage_constraint('lockphase2', 'lockphase2', 'x3', 'x4')
+    #traj.add_linkage_constraint('lockphase2', 'lockphase2', 'x4', 'x3')
 
     
 
@@ -145,6 +177,13 @@ def main():
     p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
     p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
 
+    p.set_val('traj.lockphase2.states:x1', lockphase2.interp(ys=[states_init['x1'], states_final['x1']], nodes='state_input'), units='rad')
+    p.set_val('traj.lockphase2.states:x3', lockphase2.interp(ys=[states_init['x3'], states_final['x3']], nodes='state_input'), units='rad/s')
+    p.set_val('traj.lockphase2.states:x2', lockphase2.interp(ys=[states_init['x2'], states_final['x2']], nodes='state_input'), units='rad')
+    p.set_val('traj.lockphase2.states:x4', lockphase2.interp(ys=[states_init['x4'], states_final['x4']], nodes='state_input'), units='rad/s')
+    p.set_val('traj.lockphase2.states:cost', lockphase2.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
+    p.set_val('traj.lockphase2.controls:tau', lockphase2.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
+
 
     
     dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
@@ -154,7 +193,7 @@ def main():
 
 
     # print cost
-    cost = p.get_val('traj.lockphase.states:cost')[-1]
+    cost = p.get_val('traj.lockphase2.states:cost')[-1]
     print('cost: ', cost)
 
     sim_sol = om.CaseReader('dymos_simulation.db').get_case('final')
@@ -179,6 +218,15 @@ def main():
                   title='Time History',p_sol=p,p_sim=sim_sol)
     plt.savefig('compassgait_initphase.pdf', bbox_inches='tight')
 
+    plot_results([('traj.lockphase2.timeseries.time','traj.lockphase2.timeseries.states:x1','time', 'q1'),
+                  ('traj.lockphase2.timeseries.time','traj.lockphase2.timeseries.states:x2','time','q2'),
+                  ('traj.lockphase2.timeseries.time','traj.lockphase2.timeseries.states:x3','time','q1_dot'),
+                  ('traj.lockphase2.timeseries.time','traj.lockphase2.timeseries.states:x4','time','q2_dot'),
+                  ('traj.lockphase2.timeseries.time','traj.lockphase2.timeseries.controls:tau','time','tau'),
+                  ('traj.lockphase2.timeseries.time','traj.lockphase2.timeseries.states:cost', 'time', 'cost')],
+                  title='Time History',p_sol=p,p_sim=sim_sol)
+    plt.savefig('compassgait_lockphase2.pdf', bbox_inches='tight')
+
     x1_initphase = p.get_val('traj.initphase.states:x1')
     x2_initphase = p.get_val('traj.initphase.states:x2')
     x3_initphase = p.get_val('traj.initphase.states:x3')
@@ -189,17 +237,26 @@ def main():
     x3_lockphase = p.get_val('traj.lockphase.states:x3')
     x4_lockphase = p.get_val('traj.lockphase.states:x4')
 
+    x1_lockphase2 = p.get_val('traj.lockphase2.states:x1')
+    x2_lockphase2 = p.get_val('traj.lockphase2.states:x2')
+    x3_lockphase2 = p.get_val('traj.lockphase2.states:x3')
+    x4_lockphase2 = p.get_val('traj.lockphase2.states:x4')
+
+    x1arr = np.concatenate((x1_initphase, x1_lockphase, x1_lockphase2))
+    x2arr = np.concatenate((x2_initphase, x2_lockphase, x2_lockphase2))
+    x3arr = np.concatenate((x3_initphase, x3_lockphase, x3_lockphase2))
+    x4arr = np.concatenate((x4_initphase, x4_lockphase, x4_lockphase2))
+
 
     fig, ax = plt.subplots()
 
-    ax.plot(x1_initphase, x3_initphase, linewidth=1.0, label='initphase x1')
-    ax.plot(x2_initphase, x4_initphase, linewidth=1.0, label='initphase x2')
+    ax.plot(x1arr, x4arr, linewidth=1.0, label='swing foot')
+    ax.plot(x2arr, x4arr, linewidth=1.0, label='stance foot')
 
-    ax.plot(x1_lockphase, x3_lockphase, linewidth=1.0, label='lockphase x1')
-    ax.plot(x2_lockphase, x4_lockphase, linewidth=1.0, label='lockphase x2')
+    #ax.plot(x1_lockphase, x3_lockphase, linewidth=1.0, label='lockphase x1')
+    #ax.plot(x2_lockphase, x4_lockphase, linewidth=1.0, label='lockphase x2')
 
 
-    #ax.set(xlim=(-1, 1), ylim=(-2, 2))
 
     ax.set_xlabel('angle')
     ax.set_ylabel('angular velocity')
@@ -210,8 +267,8 @@ def main():
     ## plot motion
 
     # get states
-    x1arr = np.concatenate((x1_initphase, x1_lockphase))
-    x2arr = np.concatenate((x2_initphase, x2_lockphase))
+    #x1arr = np.concatenate((x1_initphase, x1_lockphase))
+    #x2arr = np.concatenate((x2_initphase, x2_lockphase))
     num_points = len(x1arr)
 
     #plot animation
