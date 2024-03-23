@@ -110,18 +110,6 @@ class dynamics(om.ExplicitComponent):
         outputs['x3_dot'] = (H12*K*h*x3**2) + (H22*K*h*x4**2) - H22*K*G1 + H12*K*G2 #+ (H22 + H12)*K*tau
         outputs['x4_dot'] = (-H11*K*h*x3**2) - (H12*K*h*x4**2) + H12*K*G1 - H11*K*G2 #- ((H12 + H11)*K*tau)
 
-        # calculating cooridnates of points relative to stance foot
-        # this will allow us to find alpha at any point in time
-        """xhip = -l*np.sin(x2) #changes sign
-        yhip = l*np.cos(x2) # always positive
-        x_hip2swing = l*np.sin(x1) # changes sign
-        y_hip2swing = -l*np.cos(x1) # always negative
-        x_swing = xhip+x_hip2swing # x and y coords of swing foot wrt stance foot
-        y_swing = yhip+y_hip2swing # always positive
-        L_stance2swing = np.sqrt(x_swing**2+y_swing**2)
-        theta_inter = (np.pi/2) - np.tan(y_swing/np.abs(x_swing))
-        theta_R = theta_inter - x2 # the angle between the two legs on the right side of the triangle """
-
         alpha = np.abs((x1 - x2)) / 2  #(np.arcsin(L_stance2swing*np.sin(theta_R) / l)) / 2 # alpha - half the angle between the legs at hip
         
         # auxillary outputs for transition and bounds
