@@ -14,7 +14,7 @@ class system(om.Group):
 
         input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm', 'tau']
         self.add_subsystem('lockedknee', dynamics(num_nodes=nn, ), promotes_inputs=input_names, promotes_outputs=['*'])
-        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'tau'], promotes_outputs=['*'])
+        self.add_subsystem('cost', CostFunc(num_nodes=nn, states_ref=self.options['states_ref'] ), promotes_inputs=['x1', 'x2', 'mh'], promotes_outputs=['*'])
 
 
 
@@ -204,20 +204,24 @@ class CostFunc(om.ExplicitComponent):
         nn = self.options['num_nodes']
         self.add_input('x1', shape=(nn,),units='rad', desc='q1')
         self.add_input('x2', shape=(nn,),units='rad', desc='q2')
-        self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
+        #self.add_input('tau', shape=(nn,), units='N*m', desc='input torque')
+        self.add_input('mh', shape=(1,), units='kg', desc='hip mass')
         
 
         self.add_output('costrate', shape=(nn,), desc='quadratic cost rate')
         
-        self.declare_partials(of=['costrate'], wrt=['x1', 'x2', 'tau'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_partials(of=['costrate'], wrt=['x1', 'x2',], method='exact', rows=np.arange(nn), cols=np.arange(nn))
         #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
         #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
 
+        self.declare_partials(of=['costrate'], wrt=['mh'], method='exact')
+
     def compute(self, inputs, outputs,):
-        tau = inputs['tau']
+        #tau = inputs['tau']
         x1 = inputs['x1']
         x2 = inputs['x2']
         states_ref = self.options['states_ref']
+        mh = inputs['mh']
 
         x1ref = states_ref['x1'] # reference states (final)
         x2ref = states_ref['x2']
@@ -226,13 +230,14 @@ class CostFunc(om.ExplicitComponent):
         dx1 = x1 - x1ref
         dx2 = x2-x2ref
 
-        outputs['costrate'] = tau**2
+        outputs['costrate'] = dx1**2 + dx2**2 - mh
 
     def compute_partials(self, inputs, partials,):
-        tau = inputs['tau']
+        #tau = inputs['tau']
         x1 = inputs['x1']
         x2 = inputs['x2']
         states_ref = self.options['states_ref']
+        mh = inputs['mh']
 
         x1ref = states_ref['x1'] # reference states (final)
         x2ref = states_ref['x2']
@@ -242,10 +247,10 @@ class CostFunc(om.ExplicitComponent):
         dx2 = x2-x2ref
         
 
-        partials['costrate', 'tau'] = 2*tau
-        #partials['costrate', 'x1'] = 2*dx1
-        #partials['costrate', 'x2'] = 2*dx2
-
+        #partials['costrate', 'tau'] = 2*tau
+        partials['costrate', 'x1'] = 2*dx1
+        partials['costrate', 'x2'] = 2*dx2
+        partials['costrate', 'mh'] = -1
 
 def check_partials():
     nn = 3

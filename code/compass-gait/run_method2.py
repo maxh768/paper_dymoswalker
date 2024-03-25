@@ -8,7 +8,7 @@ import numpy as np
 from numpy.linalg import inv
 
 def main():
-    duration_lockphase = 1 # duration of locked knee phase
+    duration_lockphase = 10 # duration of locked knee phase
 
     # defining paramters of the legged walker
 
@@ -29,7 +29,7 @@ def main():
     states_init = [0, 0, 2, -0.4]
 
     # number of iterations
-    iterations = 10
+    iterations = 2
 
     #create plotting arrays
     x1series = [0]*iterations
@@ -170,6 +170,11 @@ def main():
         newx4 = H[1,0]*x3_end + H[1, 1]*x4_end
 
         states_init = [x2_end[0], x1_end[0], newx3, newx4]
+
+        print('x1: ',x1_end[0])
+        print('x2: ',x2_end[0])
+        print('x3: ', x3_end)
+        print('x4: ',x4_end)
         
 
     #end for loop

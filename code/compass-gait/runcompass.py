@@ -7,24 +7,29 @@ from dymos.examples.plotting import plot_results
 import numpy as np
 
 
-def main():
+def main(co_design=True):
     duration_lockphase = 1 # duration of locked knee phase
 
     # defining paramters of the legged walker
 
     a = 0.5
     b = 0.5
+    body_mass = 6
+    carrier_mass = 3
     mh = 10
     m = 5
     l = a + b
     phi = 0.05 # slope - 3 degrees
     phi_contraint = -2*phi
 
+    density = 5
+
     """ 
     walker will complete one full cycle -- states will be the same at the end as they were at the beginning
     """
-    states_init = {'x1': 0, 'x3': 1, 'x2': 0, 'x4': -0.2} # initial conditions
-    states_final = {'x1': 0, 'x3': 0, 'x2': 0, 'x4': 0} # final guess
+    states_init = {'x1': -0.3, 'x3': -0.41215, 'x2': 0.2038, 'x4': -1.0501} # initial conditions
+    states_final = {'x1': 0.0264, 'x3': -0.895, 'x2': -0.1264, 'x4': -0.669} # final guess
+    #states_final = {'x1': 0, 'x3': 0, 'x2': 0, 'x4': 0}
 
     p = om.Problem()
 
@@ -49,6 +54,20 @@ def main():
     p.driver.opt_settings['required_infeasibility_reduction'] = 0.99
     p.driver.opt_settings['max_resto_iter'] = 100
 
+    
+    design_vars = p.model.add_subsystem('design_vars', om.IndepVarComp(), promotes_outputs=['*'])
+    design_vars.add_output('a', val=a, units='m')
+    design_vars.add_output('b', val=b, units='m')
+    design_vars.add_output('density', val=density, units='kg/m')
+
+    if co_design:
+        # add design var a 
+        p.model.add_design_var('a', units='m', lower=0.1, upper=1, ref=0.5)
+        p.model.add_design_var('b', units='m', lower=0.1, upper = 1, ref=0.5)
+        #p.model.add_design_var('mh', units='kg', lower=4, upper=20, ref=10)
+
+        leg_mass_comp = om.ExecComp('m=density*(a+b)')
+        leg_mass = p.model.add_subsystem('m', leg_mass_comp, promotes=['*'])
 
 
     traj = p.model.add_subsystem('traj', dm.Trajectory()) # init trajectory
@@ -75,13 +94,19 @@ def main():
     # paramaters - same for both phases
     initphase.add_parameter('a', val=a, units='m', static_target=True)
     initphase.add_parameter('b', val=b, units='m', static_target=True)
-    initphase.add_parameter('mh', val=mh, units='kg', static_target=True)
+    initphase.add_parameter('mh', opt=True, val=mh, lower = 4, upper=15, units='kg', static_target=True)
     initphase.add_parameter('m', val=m, units='kg', static_target=True)
 
     # transition boudary contraints
     initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
 
-    initphase.add_objective('cost')
+    # set design var a to be a and b
+    p.model.connect('a', 'traj.initphase.parameters:a')
+    p.model.connect('b', 'traj.initphase.parameters:b')
+    p.model.connect('m', 'traj.initphase.parameters:m')
+    #p.model.connect('mh', 'traj.initphase.parameters:mh')
+
+    initphase.add_objective('mh', loc='final', scaler=-1)
 
     p.setup(check=True)
 
@@ -97,8 +122,18 @@ def main():
     #om.n2(p)
 
     # print cost
-    #cost = p.get_val('traj.lockphase2.states:cost')[-1]
-    #print('cost: ', cost)
+    cost = p.get_val('traj.initphase.states:cost')[-1]
+    print('cost: ', cost)
+    print('a: ', p.get_val('a', units='m'))
+    print('b: ', p.get_val('b', units='m'))
+    print('leg mass:', p.get_val('traj.initphase.parameters:m', units='kg'))
+    #print('body mass: ', p.get_val('mass_body', units='kg'))
+    #print('carrier mass: ', p.get_val('mass_carrier', units='kg'))
+    #print('carried mass: ', p.get_val('mass_carrying', units='kg'))
+    print('actual hip mass used in eqs: ', p.get_val('traj.initphase.parameters:mh', units='kg'))
+
+    a = p.get_val('a', units='m')
+    b = p.get_val('b', units='m')
 
     sim_sol = om.CaseReader('dymos_simulation.db').get_case('final')
 
