@@ -29,7 +29,7 @@ def main(co_design=True):
     """
     states_init = {'x1': -0.3, 'x3': -0.41215, 'x2': 0.2038, 'x4': -1.0501} # initial conditions
     states_final = {'x1': 0.0264, 'x3': -0.895, 'x2': -0.1264, 'x4': -0.669} # final guess
-    #states_final = {'x1': 0, 'x3': 0, 'x2': 0, 'x4': 0}
+    #states_final = {'x1': .1, 'x3': 0, 'x2': -0.2, 'x4': 0}
 
     p = om.Problem()
 
@@ -130,7 +130,7 @@ def main(co_design=True):
     #print('body mass: ', p.get_val('mass_body', units='kg'))
     #print('carrier mass: ', p.get_val('mass_carrier', units='kg'))
     #print('carried mass: ', p.get_val('mass_carrying', units='kg'))
-    print('actual hip mass used in eqs: ', p.get_val('traj.initphase.parameters:mh', units='kg'))
+    print('hip mass: ', p.get_val('traj.initphase.parameters:mh', units='kg'))
 
     a = p.get_val('a', units='m')
     b = p.get_val('b', units='m')
