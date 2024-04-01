@@ -109,7 +109,8 @@ def traj_gen():
     plot_results([('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x1','time', 'q1'),
                   ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x2','time','q2'),
                   ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x3','time','q1_dot'),
-                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x4','time','q2_dot')],
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x4','time','q2_dot'),
+                  ('traj.initphase.timeseries.time', 'traj.initphase.timeseries.parameters:mh', 'time', 'hip mass')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
     plt.savefig('compass_passive_opt=false.pdf', bbox_inches='tight')
 
@@ -247,10 +248,10 @@ def traj_opt(states_final, co_design=True):
     phase.add_parameter('mh', opt=True, val=mh, lower = 5, upper=1000, units='kg', static_target=True)
     phase.add_parameter('m', val=m, units='kg', static_target=True)
 
-    # set design var a to be a and b
-    p2.model.connect('a', 'traj.phase.parameters:a')
-    p2.model.connect('b', 'traj.phase.parameters:b')
-    p2.model.connect('m', 'traj.phase.parameters:m')
+    if co_design: # set design var a to be a and b
+        p2.model.connect('a', 'traj.phase.parameters:a')
+        p2.model.connect('b', 'traj.phase.parameters:b')
+        p2.model.connect('m', 'traj.phase.parameters:m')
 
     phase.add_objective('mh', scaler=-1)
 
@@ -287,7 +288,7 @@ def traj_opt(states_final, co_design=True):
                   ('traj.phase.timeseries.time','traj.phase.timeseries.states:x3','time','q1_dot'),
                   ('traj.phase.timeseries.time','traj.phase.timeseries.states:x4','time','q2_dot'),
                   ('traj.phase.timeseries.time','traj.phase.timeseries.controls:tau','time','tau'),
-                  ('traj.phase.timeseries.time', 'traj.phase.timeseries.states:cost', 'time', 'cost')],
+                  ('traj.phase.timeseries.time', 'traj.phase.timeseries.parameters:mh', 'time', 'hip mass')],
                   title='Time History',p_sol=p2,p_sim=sim_sol)
     plt.savefig('compassgait_active_opt=true.pdf', bbox_inches='tight')
 
@@ -329,6 +330,6 @@ def traj_opt(states_final, co_design=True):
 
 if __name__ == '__main__':
     states_final = traj_gen()
-    traj_opt(states_final)
+    traj_opt(states_final, co_design=True)
 
 
