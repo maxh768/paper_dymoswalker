@@ -4,7 +4,7 @@ import matplotlib.patches as patches
 from matplotlib import animation
 
 
-def animate_compass(x1, x2, a, b, phi, name, interval = 20, saveFig=False, gif_fps=20):
+def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFig=False, gif_fps=20):
     #x1: back leg
     #x2: front leg
     #phi: angle of slope
