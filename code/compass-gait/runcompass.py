@@ -1,7 +1,7 @@
 import numpy as np
 import openmdao.api as om
 import dymos as dm
-from compassdynamics import system
+from compass_notorque import system_passive
 import matplotlib.pyplot as plt
 from dymos.examples.plotting import plot_results
 import numpy as np
@@ -73,17 +73,17 @@ def main(co_design=True):
     traj = p.model.add_subsystem('traj', dm.Trajectory()) # init trajectory
 
     #add init phase
-    initphase = traj.add_phase('initphase', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=20, order=3), ode_init_kwargs={'states_ref': states_final}))
+    initphase = traj.add_phase('initphase', dm.Phase(ode_class=system_passive, transcription=dm.GaussLobatto(num_segments=25, order=3), ode_init_kwargs={'states_ref': states_final}))
     initphase.set_time_options(fix_initial=True, initial_val=0, fix_duration=False, units='s') # set time options for simulation
 
     #states for init phase
-    initphase.add_state('x1', fix_initial=True, rate_source='x1_dot', units='rad')
+    initphase.add_state('x1', upper= 1, lower= -1, fix_initial=True, rate_source='x1_dot', units='rad')
     initphase.add_state('x3', fix_initial=True, rate_source='x3_dot', units='rad/s')
-    initphase.add_state('x2', fix_initial=True, rate_source='x2_dot', units='rad')
+    initphase.add_state('x2', upper= 1, lower= -1, fix_initial=True, rate_source='x2_dot', units='rad')
     initphase.add_state('x4', fix_initial=True,  rate_source='x4_dot', units='rad/s')
     initphase.add_state('cost', fix_initial=True, rate_source='costrate')
 
-    initphase.add_control('tau', lower = 0, upper = 10, fix_initial=False, units='N*m') # add control torque
+    initphase.add_control('tau', lower = -10, upper = 10, fix_initial=False, units='N*m') # add control torque
 
     # add initial conditions for init phase
     initphase.add_boundary_constraint('x1', loc='initial', equals=states_init['x1'])
@@ -94,7 +94,7 @@ def main(co_design=True):
     # paramaters - same for both phases
     initphase.add_parameter('a', val=a, units='m', static_target=True)
     initphase.add_parameter('b', val=b, units='m', static_target=True)
-    initphase.add_parameter('mh', opt=True, val=mh, lower = 4, upper=15, units='kg', static_target=True)
+    initphase.add_parameter('mh', opt=True, val=mh, lower = 5, upper=80, units='kg', static_target=True)
     initphase.add_parameter('m', val=m, units='kg', static_target=True)
 
     # transition boudary contraints
@@ -104,9 +104,10 @@ def main(co_design=True):
     p.model.connect('a', 'traj.initphase.parameters:a')
     p.model.connect('b', 'traj.initphase.parameters:b')
     p.model.connect('m', 'traj.initphase.parameters:m')
-    #p.model.connect('mh', 'traj.initphase.parameters:mh')
 
-    initphase.add_objective('mh', loc='final', scaler=-1)
+    initphase.add_timeseries_output('costrate', output_name='costrate')
+
+    initphase.add_objective('costrate')
 
     p.setup(check=True)
 
@@ -117,12 +118,16 @@ def main(co_design=True):
     p.set_val('traj.initphase.states:cost', initphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
     p.set_val('traj.initphase.controls:tau', initphase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
 
-    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10})
+    #traj.simulate(times_per_seg=20, method='Radau')
+    #print(p.get_val('traj.initphase.states:x1'))
+
+
+    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 50})
 
     #om.n2(p)
 
     # print cost
-    cost = p.get_val('traj.initphase.states:cost')[-1]
+    cost = p.get_val('traj.initphase.timeseries.costrate')[1]
     print('cost: ', cost)
     print('a: ', p.get_val('a', units='m'))
     print('b: ', p.get_val('b', units='m'))

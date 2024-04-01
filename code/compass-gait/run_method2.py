@@ -1,7 +1,7 @@
 import numpy as np
 import openmdao.api as om
 import dymos as dm
-from compassdynamics import system
+from compass_notorque import system_passive
 import matplotlib.pyplot as plt
 from dymos.examples.plotting import plot_results
 import numpy as np
@@ -67,7 +67,7 @@ def main():
 
         traj = p.model.add_subsystem('traj', dm.Trajectory()) # init trajectory
 
-        lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system, transcription=dm.GaussLobatto(num_segments=20, order=3), ode_init_kwargs={'states_ref': states_ref}))
+        lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system_passive, transcription=dm.GaussLobatto(num_segments=20, order=3), ode_init_kwargs={'states_ref': states_ref}))
         lockphase.set_time_options(fix_initial=True, fix_duration=False, initial_val=0, units='s') # set time options for simulation
 
         #states for lockphase 1 phase

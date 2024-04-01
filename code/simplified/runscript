@@ -50,8 +50,10 @@ def main():
     p.set_val('traj.threelink.states:x2', threelink.interp(ys=[states_init['x2'], states_final['x2']], nodes='state_input'), units='rad/s')
     p.set_val('traj.threelink.states:cost', threelink.interp(xs=[0, 10, duration], ys=[0, 50, 100], nodes='state_input'))
     p.set_val('traj.threelink.controls:tau', threelink.interp(ys=[0, 10], nodes='control_input'), units='N*m')
+
+    threelink.simulate(times_per_seg=20)
     
-    dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10}, make_plots=True)
+    #dm.run_problem(p, run_driver=True, simulate=True, simulate_kwargs={'method' : 'Radau', 'times_per_seg' : 10}, make_plots=True)
 
     cost = p.get_val('traj.threelink.states:cost')[-1]
     print('cost: ', cost)

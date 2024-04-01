@@ -4,7 +4,7 @@ import matplotlib.patches as patches
 from matplotlib import animation
 
 
-def animate_compass(x1, x2, a, b, phi, interval = 20, saveFig=False, gif_fps=20):
+def animate_compass(x1, x2, a, b, phi, name, interval = 20, saveFig=False, gif_fps=20):
     #x1: back leg
     #x2: front leg
     #phi: angle of slope
@@ -63,7 +63,7 @@ def animate_compass(x1, x2, a, b, phi, interval = 20, saveFig=False, gif_fps=20)
 
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(x1), interval=interval, repeat=True)
     if saveFig:
-        anim.save("compass.gif", writer=animation.PillowWriter(fps=gif_fps))
+        anim.save(name, writer=animation.PillowWriter(fps=gif_fps))
     #plt.show()
 
 
