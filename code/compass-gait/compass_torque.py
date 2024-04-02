@@ -72,9 +72,9 @@ class dynamics(om.ExplicitComponent):
         
         
         #partials
-        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
-        self.declare_coloring(wrt=['x1', 'x2', 'x3', 'x4'], method='cs', show_summary=False)
-        self.set_check_partial_options(wrt=['x1', 'x2', 'x3', 'x4'], method='fd', step=1e-6)
+        self.declare_partials(of=['*'], wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='cs')#, rows=np.arange(nn), cols=np.arange(nn))
+        self.declare_coloring(wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='cs', show_summary=False)
+        self.set_check_partial_options(wrt=['x1', 'x2', 'x3', 'x4', 'tau'], method='fd', step=1e-6)
 
         self.declare_partials(of=['*'], wrt=['m', 'mh', 'a', 'b'], method='cs')# rows=np.arange(nn), cols=np.arange(nn))
         self.declare_coloring(wrt=['m', 'mh', 'a', 'b'], method='cs', show_summary=False)

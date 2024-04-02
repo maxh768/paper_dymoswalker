@@ -221,7 +221,7 @@ def traj_opt(states_final, co_design=True):
     traj = p2.model.add_subsystem('traj', dm.Trajectory()) # init trajectory
 
     #add init phase
-    phase = traj.add_phase('phase', dm.Phase(ode_class=system_passive, transcription=dm.GaussLobatto(num_segments=25, order=3), ode_init_kwargs={'states_ref': states_final}))
+    phase = traj.add_phase('phase', dm.Phase(ode_class=system_active, transcription=dm.GaussLobatto(num_segments=25, order=3), ode_init_kwargs={'states_ref': states_final}))
     phase.set_time_options(fix_initial=True, initial_val=0, fix_duration=False, units='s') # set time options for simulation
 
     #states for init phase
@@ -231,7 +231,7 @@ def traj_opt(states_final, co_design=True):
     phase.add_state('x4', fix_initial=True,  rate_source='x4_dot', units='rad/s')
     phase.add_state('cost', fix_initial=True, rate_source='costrate')
 
-    phase.add_control('tau', lower = -10, upper = 10, fix_initial=False, units='N*m') # add control torque
+    phase.add_control('tau', lower = -1, upper = 1, fix_initial=False, units='N*m') # add control torque
 
     # add initial conditions for init phase
     phase.add_boundary_constraint('x1', loc='initial', equals=states_init['x1'])
@@ -245,7 +245,7 @@ def traj_opt(states_final, co_design=True):
     # paramaters - same for both phases
     phase.add_parameter('a', val=a, units='m', static_target=True)
     phase.add_parameter('b', val=b, units='m', static_target=True)
-    phase.add_parameter('mh', opt=True, val=mh, lower = 5, upper=1000, units='kg', static_target=True)
+    phase.add_parameter('mh', opt=False, val=mh, lower = 5, upper=1000, units='kg', static_target=True)
     phase.add_parameter('m', val=m, units='kg', static_target=True)
 
     if co_design: # set design var a to be a and b
