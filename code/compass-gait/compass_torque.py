@@ -200,10 +200,11 @@ class ClosedLoopDynamics(om.Group):
 
     def setup(self):
         nn = self.options['num_nodes']
-        states_ref = self.options(states_ref)
+        states_ref = self.options['states_ref']
         # group together dynamics and feedback
-        self.add_subsystem('Feedback', Feedback(num_nodes=nn, states_ref=states_ref, promotes=['*']))
-        self.add_subsystem('dynamics', dynamics(num_nodes=nn, states_ref=states_ref, promotes=['*']))
+        input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm', 'tau']
+        self.add_subsystem('system_active', dynamics(num_nodes=nn, states_ref=states_ref), promotes_inputs=input_names, promotes_outputs=['*'])
+        self.add_subsystem('Feedback', Feedback(num_nodes=nn, states_ref=states_ref), promotes_inputs=['x1', 'x2', 'x3', 'x4', 'K'], promotes_outputs=['tau'])
 
 
 class Feedback(om.ExplicitComponent):
@@ -231,8 +232,8 @@ class Feedback(om.ExplicitComponent):
 
         self.declare_partials(of=['tau'], wrt=['K'], method='cs')
 
-    def compute(inputs, outputs, self):
-        states_ref = self.options(states_ref)
+    def compute(self, inputs, outputs):
+        states_ref = self.options['states_ref']
         K = inputs['K']
         
 
@@ -244,7 +245,7 @@ class Feedback(om.ExplicitComponent):
         outputs['tau'] = -1. * (K[0,0]*dx1 + K[0,1]*dx2 + K[0,2]*dx3 + K[0,3]*dx4)
 
     def compute_partials(self, inputs, partials):
-        states_ref = self.options(states_ref)
+        states_ref = self.options['states_ref']
         K = inputs['K']
 
         partials['tau', 'x1'] = -K[0,0]
