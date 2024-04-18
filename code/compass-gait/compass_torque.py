@@ -190,9 +190,68 @@ class dynamics(om.ExplicitComponent):
         partials['x2_dot', 'x3'] = 0
         partials['x2_dot', 'x4'] = 1
        # partials['x2_dot', 'tau'] = 0 """
+
+
+class ClosedLoopDynamics(om.Group):
+    # closed loop dynamics
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+        self.options.declare('states_ref', types=dict)
+
+    def setup(self):
+        nn = self.options['num_nodes']
+        states_ref = self.options(states_ref)
+        # group together dynamics and feedback
+        self.add_subsystem('Feedback', Feedback(num_nodes=nn, states_ref=states_ref, promotes=['*']))
+        self.add_subsystem('dynamics', dynamics(num_nodes=nn, states_ref=states_ref, promotes=['*']))
+
+
+class Feedback(om.ExplicitComponent):
+
+    def initialize(self):
+        self.options.declare('num_nodes', types=int)
+        self.options.declare("states_ref", types=dict)
+
+    def setup(self):
+        nn = self.options['num_nodes']
+
+        # add states
+        self.add_input('x1', shape=(nn,),units='rad', desc='q1')
+        self.add_input('x2', shape=(nn,),units='rad', desc='q2')
+        self.add_input('x3', shape=(nn,),units='rad/s', desc='q1 dot')
+        self.add_input('x4', shape=(nn,),units='rad/s', desc='q2 dot')
+
+        self.add_input('K', shape=(1,4)) # gain matrix for states
+
+        self.add_output('tau', shape=(nn,), units='N*m')
+
+        self.declare_partials(of=['tau'], wrt=['x1', 'x2', 'x3', 'x4'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
+        #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
+        #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
+
+        self.declare_partials(of=['tau'], wrt=['K'], method='cs')
+
+    def compute(inputs, outputs, self):
+        states_ref = self.options(states_ref)
+        K = inputs['K']
+        
+
+        dx1 = inputs['x1'] - states_ref['x1']
+        dx2 = inputs['x2'] - states_ref['x2']
+        dx3 = inputs['x3'] - states_ref['x3']
+        dx4 = inputs['x4'] - states_ref['x4']
+
+        outputs['tau'] = -1. * (K[0,0]*dx1 + K[0,1]*dx2 + K[0,2]*dx3 + K[0,3]*dx4)
+
+    def compute_partials(self, inputs, partials):
+        states_ref = self.options(states_ref)
+        K = inputs['K']
+
+        partials['tau', 'x1'] = -K[0,0]
+        partials['tau', 'x2'] = -K[0,1]
+        partials['tau', 'x3'] = -K[0,2]
+        partials['tau', 'x4'] = -K[0,3]
        
-
-
 
 class CostFunc(om.ExplicitComponent):
     # Computes the Cost
