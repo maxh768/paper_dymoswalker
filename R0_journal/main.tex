@@ -1,4 +1,4 @@
-\documentclass[smallextended]{./springer/svjour3}
+\documentclass{./springer/svjour3}
 \usepackage{graphicx} % This lets you include figures
 \graphicspath{ {./figures/} }
 \usepackage[rightcaption]{sidecap}
@@ -202,7 +202,7 @@ Since heel strike (when the swing leg collides with the ground) is modeled as a 
 collision, there is an instantaneous angular velocity change when heel stike occurs. Also, since the swing leg becomes the stance leg
 after heel strike, the angles $x_1$ and $x_2$ must be switched in the mathematical model after each walking cycle. The transition matrices used to switch $x_1$ and $x_2$ as well 
 as calculate the updated angular velocities after heel strike are shown in \ref{eq:trans1} and \ref{eq:trans2}, where $x^+$ represents the state
-variable after heel strike and $x^-$ represents the state variable before impact, and $\mb{H}$ is the angular velocity transition matrix shown in the appendix.
+variable after heel strike and $x^-$ represents the state variable before impact, $\mb{Q^-}$ and $\mb{Q^+}$ are the angular velocity transition matrices shown in the appendix.
 
 \begin{equation}
 \label{eq:trans1}
@@ -223,12 +223,13 @@ variable after heel strike and $x^-$ represents the state variable before impact
 
 \begin{equation}
 \label{eq:trans2}
+\mb{Q^+}
 \begin{bmatrix}
 \\x_3^+\\
 \\x_4^+\\
 \end{bmatrix}
  = 
-\mb{H}
+\mb{Q^-}
 \begin{bmatrix}
 \\x_3^-\\
 \\x_4^-\\
@@ -255,14 +256,14 @@ compass gait, while the stance leg pivots in place. The state variables during t
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=9cm]{./figures/onecycle.pdf}
+\includegraphics[width=10cm]{./figures/onecycle.pdf}
 \caption{One walking limit cycle of the compass gait. The swing leg makes a large swing (shown in blue, a large cicle) around while the stance leg only pivots (shown in orange.)}
 \label{fig:onecycle}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=10cm]{./figures/states_onecycle.pdf}
+\includegraphics[width=9cm]{./figures/states_onecycle.pdf}
 \caption{States of the compas gait over time for one walking cycle.}
 \label{fig:states_onecycle}
 \end{figure}
@@ -278,6 +279,8 @@ is approximataly equal to the final angle of the swing leg, and the stance leg s
 \caption{An example of an unstable limit cycle. In this case, the initial angular velocities make it impossible for the compass gait to start a walking cycle.}
 \label{fig:unstable_onecycle}
 \end{figure}
+
+\clearpage
 
 \section{Passive Optimization with Co-Design}
 
@@ -389,6 +392,7 @@ it is impossible to guarentee that all initial conditions for the compass gait w
 compass gait system complete multiple walking cycles instead of just one. In order to fix these two limitation, active CCD can be used to optimize the problem 
 and simulate the compass gait over any given number of walking cycles.
 
+\clearpage
 
 \section{Active Control Co-Design of the Compass Gait}
 
@@ -644,7 +648,113 @@ Another future study which should be conducted is the use of a closed loop contr
 MPC or LQR control in order to optimize and control the compass gait. The use of closed loop CCD with the compass would result in more optimal system parameters 
 and better trajectory optimization. 
 
+\clearpage
+\appendix
 
+\section{Compass Gait Equations}
+
+Shown in this appendix is a more complete version of the dynamics equations of the compass gait. The swing stage dynamics can be written in standard planar manipulator 
+dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and $\mb{U}$ matrices are also shown in \ref{eq:M}, \ref{eq:N}, \ref{eq:G}, and \ref{eq:U} respectively.
+
+\begin{equation}
+\label{eq:swingeq}
+\mb{M(X)}\mb{\ddot{X}} + \mb{N(X, \dot{X})}\mb{\dot{X}} + \mb{G(X)} = \tau\mb{U}
+\end{equation}
+
+\begin{equation}
+\mb{M} = 
+\label{eq:M}
+\begin{bmatrix}
+\\mb^2 &  -mlbcos(x_2 - x_1)\\
+\\-mlbcos(x_2 - x_1) &  m_{H}l^2 + m(l^2 + a^2)\\
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mb{N} = 
+\label{eq:N}
+\begin{bmatrix}
+\\0 &  mlb\dot{x_2}sin(x_2 - x_1)\\
+\\-mlb\dot{x_1}sin(x_2 - x_1) &  0\\
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mb{G} = 
+\label{eq:G}
+\begin{bmatrix}
+\\mgbsin(x_1)\\
+\\-(m_{H}l + m(a+l))gsin(x_2)\\
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mb{U} = 
+\label{eq:U}
+\begin{bmatrix}
+\\1\\
+\\-1\\
+\\0\\
+\\0\\
+\end{bmatrix}
+\end{equation}
+
+
+
+The transition equations when heel strike occurs are shown in \ref{eq:transeqn} and \ref{eq:transeqn2}, where $x^+$ signifies a state variables after heel strike and $x^-$ 
+signals a state variable before
+heel strike. The transition matrices $\mb{Q^+}$ and $\mb{Q^-}$ are shown in \ref{eq:Q-} and \ref{}. Note that $\alpha$ represents half the angle between the swing and stance 
+legs.
+
+\begin{equation}
+\label{eq:transeqn}
+\begin{bmatrix}
+\\x_1^+\\
+\\x_2^+\\
+\end{bmatrix}
+ = 
+\begin{bmatrix}
+0 & 1\\
+1 & 0\\
+\end{bmatrix}
+\begin{bmatrix}
+\\x_1^-\\
+\\x_2^-\\
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\label{eq:transeqn2}
+\mb{Q^+}
+\begin{bmatrix}
+\\x_3^+\\
+\\x_4^+\\
+\end{bmatrix}
+= 
+\mb{Q^-}
+\begin{bmatrix}
+\\x_3^-\\
+\\x_4^-\\
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mb{Q^-} = 
+\label{eq:Q-}
+\begin{bmatrix}
+\\-mab & -mab + (m_Hl^2+2mal)cos(2\alpha)\\
+\\0 & -mab\\
+\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+\mb{Q^+} = 
+\label{eq:Q+}
+\begin{bmatrix}
+\\mb(b-lcos(2\alpha)) & ml(l-bcos(2\alpha)) + ma^2 + m_Hl^2\\
+\\mb^2 & -mblcos(2\alpha)\\
+\end{bmatrix}
+\end{equation}
 
 
 \end{document}
