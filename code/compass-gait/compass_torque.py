@@ -127,6 +127,7 @@ class dynamics(om.ExplicitComponent):
         outputs['x3changer'] = x3 - (P11*x3 + P12*x4)
         outputs['x4changer'] = x4 - (P21*x3 + P22*x4)
 
+
     """def compute_partials(self, inputs, partials):
        # computes analytical partials 
 
@@ -203,7 +204,7 @@ class ClosedLoopDynamics(om.Group):
         states_ref = self.options['states_ref']
         # group together dynamics and feedback
         input_names = ['a', 'b', 'x1', 'x2', 'x3', 'x4', 'mh', 'm', 'tau']
-        self.add_subsystem('system_active', dynamics(num_nodes=nn, states_ref=states_ref), promotes_inputs=input_names, promotes_outputs=['*'])
+        self.add_subsystem('system_active', system_active(num_nodes=nn, states_ref=states_ref), promotes_inputs=input_names, promotes_outputs=['*'])
         self.add_subsystem('Feedback', Feedback(num_nodes=nn, states_ref=states_ref), promotes_inputs=['x1', 'x2', 'x3', 'x4', 'K'], promotes_outputs=['tau'])
 
 
@@ -227,9 +228,6 @@ class Feedback(om.ExplicitComponent):
         self.add_output('tau', shape=(nn,), units='N*m')
 
         self.declare_partials(of=['tau'], wrt=['x1', 'x2', 'x3', 'x4'], method='exact', rows=np.arange(nn), cols=np.arange(nn))
-        #self.declare_coloring(wrt=['m_H','m_t','m_s', 'tau',], method='cs', show_summary=False)
-        #self.set_check_partial_options(wrt=['m_H','m_t','m_s', 'tau',], method='fd', step=1e-6)
-
         self.declare_partials(of=['tau'], wrt=['K'], method='cs')
 
     def compute(self, inputs, outputs):
@@ -279,7 +277,7 @@ class CostFunc(om.ExplicitComponent):
         #mh = inputs['mh']
         time = inputs['time']
 
-        outputs['costrate'] = ((tau**2)/40) + (time/0.5)
+        outputs['costrate'] = ((tau**2)/(np.sqrt(40)**2)) + (time/0.5)
         
 
     def compute_partials(self, inputs, partials,):
@@ -288,7 +286,7 @@ class CostFunc(om.ExplicitComponent):
         #mh = inputs['mh']
 
 
-        partials['costrate', 'tau'] = 2*tau/50
+        partials['costrate', 'tau'] = 2*tau/40
         #partials['cost', 'mh'] = -1/150
         partials['costrate', 'time'] = 1/0.5
 

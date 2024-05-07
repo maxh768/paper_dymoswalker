@@ -8,7 +8,7 @@ import numpy as np
 from numpy.linalg import inv
 
 def main():
-    duration_lockphase = 10 # duration of locked knee phase
+    duration_lockphase = 1 # duration of locked knee phase
 
     # defining paramters of the legged walker
 
@@ -26,21 +26,18 @@ def main():
     """
 
     #original initial conditions
-    states_init = [0, 0, 2, -0.4]
+    states_init = {'x1': -0.3, 'x3': -0.41215, 'x2': 0.2038, 'x4': -1.0501} # initial conditions
+    states_final = {'x1': 0.02, 'x3': -0.9, 'x2': -0.1, 'x4': -0.7} # final guess
 
     # number of iterations
-    iterations = 2
-
-    #create plotting arrays
-    x1series = [0]*iterations
-    x2series = [0]*iterations
-    x3series = [0]*iterations
-    x4series = [0]*iterations
+    iterations = 10
 
     for i in range(iterations):
 
-        
-        states_ref = {'x1': states_init[0], 'x3': states_init[1], 'x2': states_init[2], 'x4': states_init[3]}
+        if (i!=0):
+            states_init = {'x1': states_init[0], 'x2': states_init[1], 'x3': states_init[2], 'x4': states_init[3]}
+
+        states_ref = states_init
 
         p = om.Problem()
 
@@ -80,15 +77,15 @@ def main():
         lockphase.add_control('tau', lower = -10, upper = 10, fix_initial=False, units='N*m') # add control torque
 
         # set initial conditions
-        lockphase.add_boundary_constraint('x1', loc='initial', equals=states_init[0])
-        lockphase.add_boundary_constraint('x2', loc='initial', equals=states_init[1])
-        lockphase.add_boundary_constraint('x3', loc='initial', equals=states_init[2])
-        lockphase.add_boundary_constraint('x4', loc='initial', equals=states_init[3])
+        lockphase.add_boundary_constraint('x1', loc='initial', equals=states_init['x1'])
+        lockphase.add_boundary_constraint('x2', loc='initial', equals=states_init['x2'])
+        lockphase.add_boundary_constraint('x3', loc='initial', equals=states_init['x3'])
+        lockphase.add_boundary_constraint('x4', loc='initial', equals=states_init['x4'])
 
         # add paramaters
         lockphase.add_parameter('a', val=a, units='m', static_target=True)
         lockphase.add_parameter('b', val=b, units='m', static_target=True)
-        lockphase.add_parameter('mh', val=mh, units='kg', static_target=True)
+        lockphase.add_parameter('mh', val=mh, opt=False, units='kg', static_target=True)
         lockphase.add_parameter('m', val=m, units='kg', static_target=True)
 
         # force legs to be at given angle at start and end
@@ -96,15 +93,15 @@ def main():
         #lockphase.add_boundary_constraint('phi_bounds', loc='initial', equals=phi_contraint,  units='rad')
 
         # add dummy objective for now
-        lockphase.add_objective('cost')
+        lockphase.add_objective('mh')
 
         p.setup(check=True)
 
         #interpolate values onto traj
-        p.set_val('traj.lockphase.states:x1', lockphase.interp(ys=[states_init[0], 0], nodes='state_input'), units='rad')
-        p.set_val('traj.lockphase.states:x3', lockphase.interp(ys=[states_init[2], 0], nodes='state_input'), units='rad/s')
-        p.set_val('traj.lockphase.states:x2', lockphase.interp(ys=[states_init[1], 0], nodes='state_input'), units='rad')
-        p.set_val('traj.lockphase.states:x4', lockphase.interp(ys=[states_init[3], 0], nodes='state_input'), units='rad/s')
+        p.set_val('traj.lockphase.states:x1', lockphase.interp(ys=[states_init['x1'], states_final['x1']], nodes='state_input'), units='rad')
+        p.set_val('traj.lockphase.states:x3', lockphase.interp(ys=[states_init['x3'], states_final['x3']], nodes='state_input'), units='rad/s')
+        p.set_val('traj.lockphase.states:x2', lockphase.interp(ys=[states_init['x2'], states_final['x2']], nodes='state_input'), units='rad')
+        p.set_val('traj.lockphase.states:x4', lockphase.interp(ys=[states_init['x4'], states_final['x4']], nodes='state_input'), units='rad/s')
         p.set_val('traj.lockphase.states:cost', lockphase.interp(xs=[0, 2, duration_lockphase], ys=[0, 50, 100], nodes='state_input'))
         p.set_val('traj.lockphase.controls:tau', lockphase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
 
@@ -117,9 +114,7 @@ def main():
         plot_results([('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x1','time', 'q1'),
                     ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x2','time','q2'),
                     ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x3','time','q1_dot'),
-                    ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x4','time','q2_dot'),
-                    ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.controls:tau','time','tau'),
-                    ('traj.lockphase.timeseries.time', 'traj.lockphase.timeseries.states:cost', 'time', 'cost')],
+                    ('traj.lockphase.timeseries.time','traj.lockphase.timeseries.states:x4','time','q2_dot')],
                     title='Time History',p_sol=p,p_sim=sim_sol)
         plt.savefig('compassgait_lockhpase.pdf', bbox_inches='tight')
 
@@ -131,13 +126,6 @@ def main():
         x3_end = x3_end[0]
         x4_end = x4_end[0]
 
-        #get timeseries for animation and plotting
-        x1series[i] = p.get_val('traj.lockphase.states:x1')
-        x2series[i] = p.get_val('traj.lockphase.states:x2')
-        x3series[i] = p.get_val('traj.lockphase.states:x3')
-        x4series[i] = p.get_val('traj.lockphase.states:x4')
-
-        print('iteration: ', i)
 
         """
         transition equations
@@ -145,7 +133,6 @@ def main():
 
         # calculate alpha at end of gait
         alpha = np.abs((x2_end[0] - x1_end[0])) / 2
-        print('alpha: ', np.rad2deg(alpha))
 
         # Q+ matrix
         Qp11 = m*b*(b-l*np.cos(2*alpha))
@@ -164,34 +151,36 @@ def main():
         Qplus_inverted = inv(Qplus)
 
         H = np.dot(Qplus_inverted, Qminus)
-        print("Matrix H: ", H)
+
 
         newx3 = H[0,0]*x3_end + H[0, 1]*x4_end
         newx4 = H[1,0]*x3_end + H[1, 1]*x4_end
 
         states_init = [x2_end[0], x1_end[0], newx3, newx4]
 
-        print('x1: ',x1_end[0])
-        print('x2: ',x2_end[0])
-        print('x3: ', x3_end)
-        print('x4: ',x4_end)
-        
+        # for plotting
+
+        if (i==0):
+            x1arr = p.get_val('traj.lockphase.timeseries.states:x1')
+            x2arr = p.get_val('traj.lockphase.timeseries.states:x2')
+            x3arr = p.get_val('traj.lockphase.timeseries.states:x3')
+            x4arr = p.get_val('traj.lockphase.timeseries.states:x4')
+            num_iter = len(x1arr)
+            timearr = p.get_val('traj.lockphase.timeseries.time')
+            endtimes = timearr[-1]
+        else:
+            x1arr = np.concatenate((x1arr, p.get_val('traj.lockphase.timeseries.states:x1')))
+            x2arr = np.concatenate((x2arr, p.get_val('traj.lockphase.timeseries.states:x2')))
+            x3arr = np.concatenate((x3arr, p.get_val('traj.lockphase.timeseries.states:x3')))
+            x4arr = np.concatenate((x4arr, p.get_val('traj.lockphase.timeseries.states:x4')))
+            intertime = p.get_val('traj.lockphase.timeseries.time') + timearr[-1]
+            timearr = np.concatenate((timearr, intertime))
+            endtimes = np.concatenate((endtimes, p.get_val('traj.lockphase.timeseries.time')[-1]))
 
     #end for loop
 
     #plot limit cycle
     fig, ax = plt.subplots()
-
-    x1arr = x1series[0]
-    x2arr = x2series[0]
-    x3arr = x3series[0]
-    x4arr = x4series[0]
-
-    for i in range(iterations-1):
-        x1arr = np.concatenate((x1arr, x1series[i+1]))
-        x2arr = np.concatenate((x2arr, x2series[i+1]))
-        x3arr = np.concatenate((x3arr, x3series[i+1]))
-        x4arr = np.concatenate((x4arr, x4series[i+1]))
 
 
     ax.plot(x1arr, x3arr, linewidth=1.0, label='swing foot')
@@ -203,9 +192,28 @@ def main():
     
 
     # animate motion
-    num_points = len(x1arr)
     from animate import animate_compass
-    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True)
+    num_points = len(x1arr)
+    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True, name='runmultpassive.gif',gif_fps=40, iter=iterations, num_iter_points=num_iter)
+
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
+    fig.suptitle('States Over Entire Range - Passive System')
+    fig.tight_layout()
+    ax1.plot(timearr, x1arr)
+    ax2.plot(timearr, x2arr)
+    ax3.plot(timearr, x3arr)
+    ax4.plot(timearr, x4arr)
+
+    ax1.set_ylabel('x1 (rad)')
+    ax2.set_ylabel('x2 (rad)')
+    ax3.set_ylabel('x3 (rad/s)')
+    ax4.set_ylabel('x4 (rad/s)')
+    ax4.set_xlabel('time (s)')
+
+    plt.savefig('total_timehistory', bbox_inches='tight')
+    print("Final Time = ", timearr[-1])
+    avgcyc = np.mean(endtimes)
+    print('Average Time/Cycle = ', avgcyc)
 
 
 

@@ -234,9 +234,9 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     phase.set_time_options(fix_initial=True, initial_val=0, fix_duration=False, units='s') # set time options for simulation
 
     #states for init phase
-    phase.add_state('x1', fix_initial=True, fix_final=True, rate_source='x1_dot', units='rad')
-    phase.add_state('x3', fix_initial=True, rate_source='x3_dot', units='rad/s')
-    phase.add_state('x2',  fix_initial=True, fix_final=True, rate_source='x2_dot', units='rad')
+    phase.add_state('x1', fix_initial=True, upper=1, lower=-1, fix_final=True, rate_source='x1_dot', units='rad')
+    phase.add_state('x3', fix_initial=True,  rate_source='x3_dot', units='rad/s')
+    phase.add_state('x2',  fix_initial=True, upper=1, lower=-1, fix_final=True, rate_source='x2_dot', units='rad')
     phase.add_state('x4', fix_initial=True, rate_source='x4_dot', units='rad/s')
     phase.add_state('cost', fix_initial=True, rate_source='costrate')
 
@@ -313,7 +313,7 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
 if __name__ == '__main__':
     states_final = traj_gen() # 1) run trajectory generation and get final states
 
-    first_states_init = [-0.3, 0.2038, -0.41215, -1.05] # in order : x1, x2, x3, x4 - default IC's
+    first_states_init =[-0.3, 0.2038, -0.41215, -1.0501] # in order : x1, x2, x3, x4 - default IC's
     #first_states_init = [0, 0, 0, 0]
     p2, _ = traj_opt(states_final=states_final, states_init=first_states_init, co_design=True) # 2) run optimization with co-designand torque to get sys paramaters and first cycle
     a = p2.get_val('a', units='m')
@@ -328,13 +328,15 @@ if __name__ == '__main__':
     timearr = p2.get_val('traj.phase.timeseries.time')
     tauarr = p2.get_val('traj.phase.timeseries.controls:tau')
     costarr = p2.get_val('traj.phase.timeseries.states:cost')
+    costpercyc = costarr[-1]
 
     num_sin_points = len(x1arr)
+    endtimes = timearr[-1]
 
 
 
     # 3) loop through traj optimization WITHOUT co design using found parameters to simulate system with open loop torque control
-    iterations = 2 # number of loops
+    iterations = 9 # number of loops
 
     for i in range(iterations):
         
@@ -385,6 +387,8 @@ if __name__ == '__main__':
         timearr = np.concatenate((timearr, intertime))
         tauarr = np.concatenate((tauarr, p2.get_val('traj.phase.timeseries.controls:tau')))
         costarr = np.concatenate((costarr, p2.get_val('traj.phase.timeseries.states:cost')))
+        endtimes = np.concatenate((endtimes, p2.get_val('traj.phase.timeseries.time')[-1]))
+        costpercyc = np.concatenate((costpercyc, p2.get_val('traj.phase.timeseries.states:cost')[-1]))
 
 
     # end for loop"""
@@ -418,13 +422,24 @@ if __name__ == '__main__':
 
     ax1.set_ylabel('x1 (rad)')
     ax2.set_ylabel('x2 (rad)')
-    ax3.set_ylabel('x3 (rad)')
-    ax4.set_ylabel('x4 (rad)')
+    ax3.set_ylabel('x3 (rad/s)')
+    ax4.set_ylabel('x4 (rad/s)')
     ax5.set_ylabel('tau (N*m)')
     ax6.set_ylabel('Cost')
     ax6.set_xlabel('time (s)')
     
 
     plt.savefig('total_timehistory', bbox_inches='tight')
+
+    print('Total Time: ', timearr[-1])
+    avgcyc = np.mean(endtimes)
+    print('avg time/cycle = ', avgcyc)
+
+    tausquared = tauarr**2
+    totaltau = np.sum(tausquared)
+    print('tau integral = ', totaltau)
+
+    total_cost = np.sum(costpercyc)
+    print('Total Cost = ', total_cost)
     
 

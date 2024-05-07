@@ -14,8 +14,6 @@ def main(co_design=True):
 
     a = 0.5
     b = 0.5
-    body_mass = 6
-    carrier_mass = 3
     mh = 10
     m = 5
     l = a + b
@@ -24,10 +22,8 @@ def main(co_design=True):
 
     density = 5
 
-    """ 
-    walker will complete one full cycle -- states will be the same at the end as they were at the beginning
-    """
-    states_init = {'x1': -0.3, 'x3': -0.41215, 'x2': 0.2038, 'x4': -1.0501} # initial conditions
+
+    states_init = {'x1': -0.23, 'x3': -0.4, 'x2': 0.25, 'x4': -0.75}
     states_final = {'x1': 0.0264, 'x3': -0.895, 'x2': -0.1264, 'x4': -0.669} # final guess
     #states_final = {'x1': .1, 'x3': 0, 'x2': -0.2, 'x4': 0}
 
@@ -94,20 +90,19 @@ def main(co_design=True):
     # paramaters - same for both phases
     initphase.add_parameter('a', val=a, units='m', static_target=True)
     initphase.add_parameter('b', val=b, units='m', static_target=True)
-    initphase.add_parameter('mh', opt=True, val=mh, lower = 5, upper=80, units='kg', static_target=True)
+    initphase.add_parameter('mh', opt=co_design, val=mh, lower = 5, upper=1000, units='kg', static_target=True)
     initphase.add_parameter('m', val=m, units='kg', static_target=True)
 
     # transition boudary contraints
     initphase.add_boundary_constraint('phi_bounds', loc='final', equals=phi_contraint,  units='rad')
 
-    # set design var a to be a and b
-    p.model.connect('a', 'traj.initphase.parameters:a')
-    p.model.connect('b', 'traj.initphase.parameters:b')
-    p.model.connect('m', 'traj.initphase.parameters:m')
+    if co_design:
+        # set design var a to be a and b
+        p.model.connect('a', 'traj.initphase.parameters:a')
+        p.model.connect('b', 'traj.initphase.parameters:b')
+        p.model.connect('m', 'traj.initphase.parameters:m')
 
-    initphase.add_timeseries_output('costrate', output_name='costrate')
-
-    initphase.add_objective('costrate')
+    initphase.add_objective('mh', scaler=-1)
 
     p.setup(check=True)
 
@@ -126,9 +121,7 @@ def main(co_design=True):
 
     #om.n2(p)
 
-    # print cost
-    cost = p.get_val('traj.initphase.timeseries.costrate')[1]
-    print('cost: ', cost)
+
     print('a: ', p.get_val('a', units='m'))
     print('b: ', p.get_val('b', units='m'))
     print('leg mass:', p.get_val('traj.initphase.parameters:m', units='kg'))
@@ -144,12 +137,10 @@ def main(co_design=True):
 
     # plot time history
 
-    plot_results([('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x1','time', 'q1'),
-                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x2','time','q2'),
-                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x3','time','q1_dot'),
-                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x4','time','q2_dot'),
-                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.controls:tau','time','tau'),
-                  ('traj.initphase.timeseries.time', 'traj.initphase.timeseries.states:cost', 'time', 'cost')],
+    plot_results([('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x1','time', 'x1'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x2','time','x2'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x3','time','x3'),
+                  ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x4','time','x4')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
     plt.savefig('compassgait_initphase.pdf', bbox_inches='tight')
 
@@ -171,11 +162,11 @@ def main(co_design=True):
     #ax.plot(x1_lockphase, x3_lockphase, linewidth=1.0, label='lockphase x1')
     #ax.plot(x2_lockphase, x4_lockphase, linewidth=1.0, label='lockphase x2')
 
-    ax.set_xlabel('angle')
-    ax.set_ylabel('angular velocity')
-    #ax.legend()
+    ax.set_xlabel('Angle (rad)')
+    ax.set_ylabel('Angular velocity (rad/s)')
+    ax.legend()
 
-    plt.savefig('limitcycle_compass.pdf')
+    plt.savefig('nonopt_limitcycle.pdf')
 
     ## plot motion
 
@@ -187,9 +178,9 @@ def main(co_design=True):
 
     #plot animation
     from animate import animate_compass
-    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True)
+    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True, name='passive.gif')
 
 
 
 if __name__ == '__main__':
-    main()
+    main(co_design=False)

@@ -2,14 +2,13 @@ import numpy as np
 import openmdao.api as om
 import dymos as dm
 from compass_notorque import system_passive
-from compass_torque import ClosedLoopDynamics
 import matplotlib.pyplot as plt
 from dymos.examples.plotting import plot_results
 import numpy as np
 from numpy.linalg import inv
 
 """
-CLOSED LOOP CONTROL OVER LIMIT CYCLE (CO-DESIGN FOR FIRST CYCLE ONLY) WITH OBJ: MINIMIZE TIME AND TAU WITH TRAJECTORY GENERATION
+OPEN LOOP CO DESIGN OVER 1 CYCLE - PASSIVE OPTIMIZATION PROBLEM
 """
 
 # defining paramters of the legged walker
@@ -20,9 +19,6 @@ m = 5
 l = a + b
 phi = 0.05 # slope - 3 degrees
 phi_contraint = -2*phi
-
-
-
 
 def traj_gen():
     duration_lockphase = 1 # duration of locked knee phase
@@ -217,15 +213,12 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     design_vars.add_output('b', val=b, units='m')
     design_vars.add_output('mh', val=mh, units='kg')
     design_vars.add_output('density', val=density, units='kg/m')
-    #design_vars.add_output('K', val=np.zeros((1, 4)))
-
-    #p2.model.add_design_var('K', ref=np.zeros((1, 4)))
 
     if co_design:
         # add design var a 
         p2.model.add_design_var('a', units='m', lower=0.1, upper=1,  ref=0.5)
         p2.model.add_design_var('b', units='m', lower=0.1, upper=1,  ref=0.5)
-        p2.model.add_design_var('mh', units='kg', lower=5, upper=100)
+        p2.model.add_design_var('mh', units='kg', lower=5, upper=80)
 
         leg_mass_comp = om.ExecComp('m=density*(a+b)')
         leg_mass = p2.model.add_subsystem('m', leg_mass_comp, promotes=['*'])
@@ -233,7 +226,7 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     traj = p2.model.add_subsystem('traj', dm.Trajectory()) # init trajectory
 
     #add init phase
-    phase = traj.add_phase('phase', dm.Phase(ode_class=ClosedLoopDynamics, transcription=dm.GaussLobatto(num_segments=30, order=3), ode_init_kwargs={'states_ref': states_final}))
+    phase = traj.add_phase('phase', dm.Phase(ode_class=system_passive, transcription=dm.GaussLobatto(num_segments=30, order=3), ode_init_kwargs={'states_ref': states_final}))
     phase.set_time_options(fix_initial=True, initial_val=0, fix_duration=False, units='s') # set time options for simulation
 
     #states for init phase
@@ -241,11 +234,9 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     phase.add_state('x3', fix_initial=True, rate_source='x3_dot', units='rad/s')
     phase.add_state('x2',  fix_initial=True, fix_final=True, rate_source='x2_dot', units='rad')
     phase.add_state('x4', fix_initial=True, rate_source='x4_dot', units='rad/s')
-    #phase.add_state('cost', fix_initial=True, rate_source='costrate')
+    phase.add_state('cost', fix_initial=True, rate_source='costrate')
 
-    phase.add_control('K', fix_initial=False, val=np.zeros((1, 4)))
-
-    #phase.add_control('tau', fix_initial=False, lower=-20, upper=20, units='N*m') # add control torque
+    phase.add_control('tau', fix_initial=False, lower=-20, upper=20, units='N*m') # add control torque
 
     # add initial conditions for init phase
     phase.add_boundary_constraint('x1', loc='initial', equals=states_init['x1'])
@@ -263,18 +254,16 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     phase.add_parameter('b', val=b, units='m', static_target=True)
     phase.add_parameter('mh', val=mh, units='kg', static_target=True)
     phase.add_parameter('m', val=m, units='kg', static_target=True)
-    #phase.add_parameter('K', val=np.zeros((1, 4)), static_target=True)
 
     if co_design: # set design var a to be a and b
         p2.model.connect('a', 'traj.phase.parameters:a')
         p2.model.connect('b', 'traj.phase.parameters:b')
         p2.model.connect('m', 'traj.phase.parameters:m')
         p2.model.connect('mh', 'traj.phase.parameters:mh')
-    #p2.model.connect('K', 'traj.phase.parameters:K')
 
     #phase.add_timeseries_output('costval', units='s')
 
-    phase.add_objective('time', loc='final')
+    phase.add_objective('mh', scaler=-1)
 
     p2.setup(check=True)
 
@@ -282,8 +271,8 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     p2.set_val('traj.phase.states:x3', phase.interp(ys=[states_init['x3'], states_final['x3']], nodes='state_input'), units='rad/s')
     p2.set_val('traj.phase.states:x2', phase.interp(ys=[states_init['x2'], states_final['x2']], nodes='state_input'), units='rad')
     p2.set_val('traj.phase.states:x4', phase.interp(ys=[states_init['x4'], states_final['x4']], nodes='state_input'), units='rad/s')
-    #p2.set_val('traj.phase.states:cost', phase.interp(xs=[0, 0.05, duration_lockphase], ys=[0, 0.05, 2], nodes='state_input'))
-    #p2.set_val('traj.phase.controls:tau', phase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
+    p2.set_val('traj.phase.states:cost', phase.interp(xs=[0, 0.05, duration_lockphase], ys=[0, 0.05, 2], nodes='state_input'))
+    p2.set_val('traj.phase.controls:tau', phase.interp(ys=[0, 10], nodes='control_input'), units='N*m') 
 
     dm.run_problem(p2, run_driver=True, simulate=True, simulate_kwargs={'method' : 'RK45', 'times_per_seg' : 100})
 
@@ -291,13 +280,11 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
 
     a = p2.get_val('a', units='m')
     b = p2.get_val('b', units='m')
-    #cost = p2.get_val('traj.phase.states:cost')[-1]
-    #print('Cost: ', cost)
-    #K = p2.get_val('K')
+    cost = p2.get_val('traj.phase.states:cost')[-1]
+    print('Cost: ', cost)
 
     print('a: ', a)
     print('b: ', b)
-    #print('K: ', K)
     print('leg mass:', p2.get_val('traj.phase.parameters:m', units='kg'))
     print('hip mass: ', p2.get_val('traj.phase.parameters:mh', units='kg'))
     print('final time: ', p2.get_val('traj.phase.timeseries.time')[-1])
@@ -309,9 +296,9 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
     plot_results([('traj.phase.timeseries.time','traj.phase.timeseries.states:x1','time', 'q1'),
                   ('traj.phase.timeseries.time','traj.phase.timeseries.states:x2','time','q2'),
                   ('traj.phase.timeseries.time','traj.phase.timeseries.states:x3','time','q1_dot'),
-                  ('traj.phase.timeseries.time','traj.phase.timeseries.states:x4','time','q2_dot')],
-                  #('traj.phase.timeseries.time','traj.phase.timeseries.controls:tau','time','tau'),
-                  #('traj.phase.timeseries.time', 'traj.phase.timeseries.states:cost', 'time', 'cost'),
+                  ('traj.phase.timeseries.time','traj.phase.timeseries.states:x4','time','q2_dot'),
+                  ('traj.phase.timeseries.time','traj.phase.timeseries.controls:tau','time','tau'),
+                  ('traj.phase.timeseries.time', 'traj.phase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p2,p_sim=sim_sol)
     plt.savefig('compassgait_lastcycle_openloop', bbox_inches='tight')
 
@@ -322,9 +309,9 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
 if __name__ == '__main__':
     states_final = traj_gen() # 1) run trajectory generation and get final states
 
-    first_states_init = [-0.3, 0.2038, -0.41215, -1.05] # in order : x1, x2, x3, x4 - default IC's
+    first_states_init = [-0.23, 0.4, -0.24, -1.1] # in order : x1, x2, x3, x4 - default IC's
     #first_states_init = [0, 0, 0, 0]
-    p2, _ = traj_opt(states_final=states_final, states_init=first_states_init, co_design=False) # 2) run optimization with co-designand torque to get sys paramaters and first cycle
+    p2, _ = traj_opt(states_final=states_final, states_init=first_states_init, co_design=True) # 2) run optimization with co-designand torque to get sys paramaters and first cycle
     a = p2.get_val('a', units='m')
     b = p2.get_val('b', units='m')
     mh = p2.get_val('traj.phase.timeseries.parameters:mh')[-1]
@@ -335,17 +322,12 @@ if __name__ == '__main__':
     x3arr = p2.get_val('traj.phase.timeseries.states:x3')
     x4arr = p2.get_val('traj.phase.timeseries.states:x4')
     timearr = p2.get_val('traj.phase.timeseries.time')
-    #tauarr = p2.get_val('traj.phase.timeseries.controls:tau')
-    #costarr = p2.get_val('traj.phase.timeseries.states:cost')
+
 
     num_sin_points = len(x1arr)
 
-
-
-    # 3) loop through traj optimization WITHOUT co design using found parameters to simulate system with open loop torque control
-    iterations = 2 # number of loops
-
-    """for i in range(iterations):
+    iterations = 2
+    for i in range(iterations):
         
         # get final values from traj
         x1_end = p2.get_val('traj.phase.states:x1')[-1]
@@ -392,11 +374,7 @@ if __name__ == '__main__':
         x4arr = np.concatenate((x4arr, p2.get_val('traj.phase.timeseries.states:x4')))
         intertime = p2.get_val('traj.phase.timeseries.time') + timearr[-1]
         timearr = np.concatenate((timearr, intertime))
-        tauarr = np.concatenate((tauarr, p2.get_val('traj.phase.timeseries.controls:tau')))
-        #costarr = np.concatenate((costarr, p2.get_val('traj.phase.timeseries.states:cost')))
 
-
-    # end for loop"""
 
     # plot limit cycle
     fig, ax = plt.subplots()
@@ -422,15 +400,12 @@ if __name__ == '__main__':
     ax2.plot(timearr, x2arr)
     ax3.plot(timearr, x3arr)
     ax4.plot(timearr, x4arr)
-    #ax5.plot(timearr, tauarr)
-    #ax6.plot(timearr, costarr)
+
 
     ax1.set_ylabel('x1 (rad)')
     ax2.set_ylabel('x2 (rad)')
     ax3.set_ylabel('x3 (rad)')
     ax4.set_ylabel('x4 (rad)')
-    #ax5.set_ylabel('tau (N*m)')
-    #ax6.set_ylabel('Cost')
     ax4.set_xlabel('time (s)')
     
 
