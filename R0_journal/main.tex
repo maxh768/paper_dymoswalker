@@ -78,7 +78,7 @@
 
 
 
-\title{Research project title}
+\title{Optimization of the Walking Compass Gait Robot With the Use of Control Co-Design}
 \author{Max Howell}
 \institute{University Of Tennessee Knoxville$^*$ ($^*$corresponding author),
           \email{mhowel30@vols.utk.edu} \\
@@ -91,8 +91,6 @@
 
 
 \begin{document}
-\bibliographystyle{plain}
-\bibliography{references}
 
 \maketitle{}
 
@@ -109,15 +107,16 @@ when compared to a compass gait using only open loop control. The torque needed 
 It was also shown that even a simple optimization problem of the passive compass gait can increase the range of stability for the system. When a passive compass gait was optimized to maximize the hip 
 mass, it was shown that not only can the hip mass be optimized by chaning the system parameters, but when simulating the optimized compass gait with 
 the same initial conditions which cause a unstable passive system, the optimized system was stable.
-
-\end{abstract}
+  
+\end{abstract} 
 
 \section{Introduction}
 % introduce control-codesign
 Control Co-Design (CCD) is a design method used to optimally design a system's parameters and control the system at the same time. Traditionally in engineering,
 when a system is designed an iterative process is used to determine the best parameters for the system; however, this can be time consuming and inefficient. 
-It has been shown in \cite{} that the cost of control can be decreased by atleast xx\% in systems such as a cartpole pendulum and a quadrotor by using CCD. CCD applications range
-from design optimizatoin of (examples of CCD being used with citations)
+It has been shown in \cite{wu2022control} that CCD can be used to improve the weight reduction of a high-acceleration precision motion system by 42$\%$, and 
+the bandwith of the system by 28$\%$. It has also been shown in \cite{Mandali2023} that CCD can be used to control other non-mechancial such as thermal 
+management systems. 
 
 %introduce dymos a a way to use CCD for walking bipdel system
 CCD can be used in junciton with optimal control algorithms with the objective of minimizing or maximizing a desired cost function. One 
@@ -140,7 +139,7 @@ $\theta_{st}$. A torque, $\tau$ is applied at the hip to each leg in the opposit
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=10cm]{./figures/compassgaitmodel.png}
+\includegraphics[width=8cm]{./figures/compassgaitmodel.png}
 \caption{Schematic of the compass gait model. Angles $\theta_{sw}$ and $\theta_{st}$ are shown as the swing leg angle and stance leg angle, respectively.}
 \label{fig:compassgaitmodel}
 \end{figure}
@@ -177,7 +176,7 @@ $x_1$ and $x_2$, respectively, with $x_3$ and $x_4$ being the anguar velocities 
 \end{bmatrix}
 \end{equation}
 
-The dynamic equations of the swing stage of the compass gait, from \cite{french confrence}, can be written in standard planar manupular dynamics form. 
+The dynamic equations of the swing stage of the compass gait, from \cite{goswami:inria-00073701}, can be written in standard planar manupular dynamics form. 
 This is shown in \ref{eq:swingeqn}, where $\mb{M}$, $\mb{N}$, and $\mb{G}$ are matrices shown in the appendix, and $\mb{U}$
  is the vector used to apply the torque to each leg, shown in
 \ref{eq:U}.
@@ -285,16 +284,23 @@ is approximataly equal to the final angle of the swing leg, and the stance leg s
 \section{Passive Optimization with Co-Design}
 
 In order to acheive co-design with a simple passive compass gait system, an optimization problem was proposed.
-This optimization problem, outlined in Figure \ref{fig:optsetup}, involved maximizing the point mass at the hip ($m_H$) in order to simulate the
+This optimization problem, outlined in  \ref{eq:optprobsetup}, involved maximizing the point mass at the hip ($m_H$) in order to simulate the
 compass gait robot "carrying" a heavy object. In order to acheive this goal, the lengths below and above the leg point mass, a and b, were optimized.
 The leg point mass ($m$) also changed based on the total length of the legs based on the given density of the legs.
 
-\begin{figure}[!h]
-\centering
-\includegraphics[width=6cm]{./figures/opt1prob.png}
-\caption{Outline of the simple passive optimization problem. The goal is to incrase the range of stable initial conditions while maximizing the applied hip mass.}
-\label{fig:optsetup}
-\end{figure}
+\begin{equation}
+\begin{aligned}
+\text{Objective: Maximize $m_H$}\\
+\text{Subject to:}\\
+\text{Dynamic Constraints of System}\\
+\text{Design Variables: 0.1$<$a$<$1, 0.1$<$b$<$1, (m)}\\
+\text{Hip Mass: 5$<$$m_H$$<$80, (kg)}\\
+\text{Leg Mass: } m = 5(a+b), \text{(kg)}\\
+\text{End States $x_1$ and $x_2$ are Constrained Based on Trajectory Generation}
+\end{aligned}
+\label{eq:optprobsetup}
+\end{equation}
+
 
 The goal of this optimization problem was to increase the range of initial conditions that caused the compass gait to complete one stable cycle
 while maximizing the mass at the hip. In order to acheive this goal a trajectory generation method was used, where the compass gait model was
@@ -373,7 +379,7 @@ optimization, but it also succesfully maximized the mass at the hip.
 
 \begin{table}[h]
 \centering
-\caption{Initial Conditions and System Parameters of the Non-Optimized Compass Gait Shown in \ref{fig:nonoptlimcycle}}
+\caption{Optimized System Parameters of the compass gait.}
 \begin{tabular}{lr}
 \toprule
 Parameter & Value \\
@@ -414,14 +420,19 @@ t_r = 0.5 (s)
 \end{equation}
 
 Since the hip mass was no longer part of the cost function, it was chosen to also 
-be a design variable of the system. The constraints of the system remained the same, outlined in Figure \ref{fig:OLprob}.
+be a design variable of the system. The constraints of the system remained the same, outlined in \ref{eq:OLprob}.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=7cm]{./figures/openloopcontrol.png}
-\caption{The torque and total time to complete a cycle were minimized in the active open loop CCD problem.}
-\label{fig:OLprob}
-\end{figure}
+\begin{equation}
+\begin{aligned}
+\text{Minimize: } J = \int_{0}^{t} (\tau / \tau_r)^2 + (t/t_r) \,dt \\
+\text{Subject to:}\\
+\text{Dynamic Constraints of System}\\
+\text{Design Variables: } 0.1<a<1 (m), 0.1<b<1 (m), 0<m_H<100 \text{kg}\\
+\text{Leg Mass: } m = 5(a+b)\\
+\text{End States of $x_1$ and $x_2$ Constrained by Trajectory Generation}
+\end{aligned}
+\label{eq:OLprob}
+\end{equation}
 
 In order to optimize the compass gait through multiple walking cycles and ensure stability, the trajectory generation method used
 in the previous section was used with continued simulation of the system after the first cycle.
@@ -566,13 +577,13 @@ CCD is more effective in reducing the time per cycle of the compass gait than co
 \begin{table}[h]
 \centering
 \caption{Average Time per Cycle and Total Time for 10 Cycles of Each Simulation (seconds)}
-\begin{tabular}{ccc}
+\begin{tabular}{cccc}
 \toprule
-Simulation & Average Time/Cycle & Total Time \\
+Simulation & Average Time/Cycle & Total Time & Percent Improvement\\
 \midrule
-Passive System & 0.680 & 6.8 \\
-Active System Without Co-Design & 0.594 & 5.94 \\
-System with CCD & 0.531 & 5.31\\
+Passive System & 0.680 & 6.8 & N/A\\
+Active System Without Co-Design & 0.594 & 5.94 & 12.66$\%$ \\
+System with CCD & 0.531 & 5.31 & 21.91$\%$\\
 \end{tabular}
 \label{tab:time}
 \end{table}
@@ -593,12 +604,12 @@ system can greatly decrease the cost of control when compared to compass gait sy
 \begin{table}[h]
 \centering
 \caption{Summation of $\tau^2$ for the CCD and Open Loop Control System}
-\begin{tabular}{lr}
+\begin{tabular}{ccc}
 \toprule
-System & $\sum \tau^2$ \\
+System & $\sum \tau^2$ & Percent Improvement \\
 \midrule
-Active System Without Co-Design & 133.46\\
-System with CCD & 29.17\\
+Active System Without Co-Design & 133.46 & N/A\\
+System with CCD & 29.17 & 78.1$\%$\\
 \end{tabular}
 \label{tab:tautot}
 \end{table}
@@ -654,7 +665,7 @@ and better trajectory optimization.
 \section{Compass Gait Equations}
 
 Shown in this appendix is a more complete version of the dynamics equations of the compass gait. The swing stage dynamics can be written in standard planar manipulator 
-dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and $\mb{U}$ matrices are also shown in \ref{eq:M}, \ref{eq:N}, \ref{eq:G}, and \ref{eq:U} respectively.
+dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and $\mb{U2}$ matrices are also shown in \ref{eq:M}, \ref{eq:N}, \ref{eq:G}, and \ref{eq:U} respectively.
 
 \begin{equation}
 \label{eq:swingeq}
@@ -690,7 +701,7 @@ dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and 
 
 \begin{equation}
 \mb{U} = 
-\label{eq:U}
+\label{eq:U2}
 \begin{bmatrix}
 \\1\\
 \\-1\\
@@ -756,5 +767,7 @@ legs.
 \end{bmatrix}
 \end{equation}
 
+\bibliography{bib/references}
+\bibliographystyle{plain}
 
 \end{document}
