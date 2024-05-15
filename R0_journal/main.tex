@@ -76,8 +76,6 @@
 %\usepackage[section]{placeins}
 
 
-
-
 \title{Optimization of the Walking Compass Gait Robot With the Use of Control Co-Design}
 \author{Max Howell}
 \institute{University Of Tennessee Knoxville$^*$ ($^*$corresponding author),
@@ -91,9 +89,8 @@
 
 
 \begin{document}
-
 \maketitle{}
-
+\bibliographystyle{ieeetr}
 \begin{abstract}
 
 Control Co-Design (CCD) is a method used to optimally design mechanical systems which involves desinging the systems parameters and controling the system at the same time. This method 
@@ -255,14 +252,14 @@ compass gait, while the stance leg pivots in place. The state variables during t
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=10cm]{./figures/onecycle.pdf}
+\includegraphics[width=6.5cm]{./figures/onecycle.pdf}
 \caption{One walking limit cycle of the compass gait. The swing leg makes a large swing (shown in blue, a large cicle) around while the stance leg only pivots (shown in orange.)}
 \label{fig:onecycle}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=9cm]{./figures/states_onecycle.pdf}
+\includegraphics[width=8cm]{./figures/states_onecycle.pdf}
 \caption{States of the compas gait over time for one walking cycle.}
 \label{fig:states_onecycle}
 \end{figure}
@@ -274,7 +271,7 @@ is approximataly equal to the final angle of the swing leg, and the stance leg s
 
 \begin{figure}[!h]
 \centering
-\includegraphics[width=10cm]{./figures/unstable_onecycle.pdf}
+\includegraphics[width=8cm]{./figures/unstable_onecycle.pdf}
 \caption{An example of an unstable limit cycle. In this case, the initial angular velocities make it impossible for the compass gait to start a walking cycle.}
 \label{fig:unstable_onecycle}
 \end{figure}
@@ -290,13 +287,13 @@ The leg point mass ($m$) also changed based on the total length of the legs base
 
 \begin{equation}
 \begin{aligned}
-\text{Objective: Maximize $m_H$}\\
-\text{Subject to:}\\
-\text{Dynamic Constraints of System}\\
-\text{Design Variables: 0.1$<$a$<$1, 0.1$<$b$<$1, (m)}\\
-\text{Hip Mass: 5$<$$m_H$$<$80, (kg)}\\
-\text{Leg Mass: } m = 5(a+b), \text{(kg)}\\
-\text{End States $x_1$ and $x_2$ are Constrained Based on Trajectory Generation}
+&\text{Objective: Maximize $m_H$}\\
+&\text{Subject to:}\\
+&\text{Dynamic Constraints of System}\\
+&\text{Design Variables: 0.1$<$a$<$1, 0.1$<$b$<$1, (m)}\\
+&\text{Hip Mass: 5$<$$m_H$$<$80, (kg)}\\
+&\text{Leg Mass: } m = 5(a+b), \text{(kg)}\\
+&\text{End States $x_1$ and $x_2$ are Constrained by Trajectory Generation}
 \end{aligned}
 \label{eq:optprobsetup}
 \end{equation}
@@ -424,12 +421,12 @@ be a design variable of the system. The constraints of the system remained the s
 
 \begin{equation}
 \begin{aligned}
-\text{Minimize: } J = \int_{0}^{t} (\tau / \tau_r)^2 + (t/t_r) \,dt \\
-\text{Subject to:}\\
-\text{Dynamic Constraints of System}\\
-\text{Design Variables: } 0.1<a<1 (m), 0.1<b<1 (m), 0<m_H<100 \text{kg}\\
-\text{Leg Mass: } m = 5(a+b)\\
-\text{End States of $x_1$ and $x_2$ Constrained by Trajectory Generation}
+&\text{Minimize: } J = \int_{0}^{t} (\tau / \tau_r)^2 + (t/t_r) \,dt \\
+&\text{Subject to:}\\
+&\text{Dynamic Constraints of System}\\
+&\text{Design Variables: } 0.1<a<1 (m), 0.1<b<1 (m), 0<m_H<100 \text{kg}\\
+&\text{Leg Mass: } m = 5(a+b)\\
+&\text{End States of $x_1$ and $x_2$ Constrained by Trajectory Generation}
 \end{aligned}
 \label{eq:OLprob}
 \end{equation}
@@ -665,7 +662,7 @@ and better trajectory optimization.
 \section{Compass Gait Equations}
 
 Shown in this appendix is a more complete version of the dynamics equations of the compass gait. The swing stage dynamics can be written in standard planar manipulator 
-dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and $\mb{U2}$ matrices are also shown in \ref{eq:M}, \ref{eq:N}, \ref{eq:G}, and \ref{eq:U} respectively.
+dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and $\mb{U}$ matrices are also shown in \ref{eq:M}, \ref{eq:N}, \ref{eq:G}, and \ref{eq:U2} respectively.
 
 \begin{equation}
 \label{eq:swingeq}
@@ -714,7 +711,7 @@ dynamics form, shown in \ref{eq:swingeq}. The $\mb{M}$, $\mb{N}$, $\mb{G}$, and 
 
 The transition equations when heel strike occurs are shown in \ref{eq:transeqn} and \ref{eq:transeqn2}, where $x^+$ signifies a state variables after heel strike and $x^-$ 
 signals a state variable before
-heel strike. The transition matrices $\mb{Q^+}$ and $\mb{Q^-}$ are shown in \ref{eq:Q-} and \ref{}. Note that $\alpha$ represents half the angle between the swing and stance 
+heel strike. The transition matrices $\mb{Q^-}$ and $\mb{Q^+}$ are shown in \ref{eq:Q-} and \ref{eq:Q+}. Note that $\alpha$ represents half the angle between the swing and stance 
 legs.
 
 \begin{equation}
@@ -767,7 +764,19 @@ legs.
 \end{bmatrix}
 \end{equation}
 
+
+\section*{Acknowledgement}
+\LARGE
+I would like to thank my professor, Sicheng He, who made this project possible. The knowledge and support he provided 
+helped guide me through this project. I would also like to thank Shugo Kaneko for the help he provided by debugging my Dymos code which 
+signficantly sped up the process of developing the simulation of the compass gait.
+
+\clearpage
+
+\pagestyle{plain}
+\normalsize
 \bibliography{bib/references}
-\bibliographystyle{plain}
+
+
 
 \end{document}

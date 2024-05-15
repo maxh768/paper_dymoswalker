@@ -30,7 +30,7 @@ def main():
     states_final = {'x1': 0.02, 'x3': -0.9, 'x2': -0.1, 'x4': -0.7} # final guess
 
     # number of iterations
-    iterations = 10
+    iterations = 3
 
     for i in range(iterations):
 
@@ -194,7 +194,7 @@ def main():
     # animate motion
     from animate import animate_compass
     num_points = len(x1arr)
-    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True, name='runmultpassive.gif',gif_fps=40, iter=iterations, num_iter_points=num_iter)
+    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True, name='runmultpassive.gif',gif_fps=29, iter=iterations, num_iter_points=num_iter)
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle('States Over Entire Range - Passive System')
