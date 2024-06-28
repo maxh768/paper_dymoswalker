@@ -30,7 +30,7 @@ def main():
     states_final = {'x1': 0.02, 'x3': -0.9, 'x2': -0.1, 'x4': -0.7} # final guess
 
     # number of iterations
-    iterations = 3
+    iterations = 10
 
     for i in range(iterations):
 
@@ -64,7 +64,7 @@ def main():
 
         traj = p.model.add_subsystem('traj', dm.Trajectory()) # init trajectory
 
-        lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system_passive, transcription=dm.GaussLobatto(num_segments=20, order=3), ode_init_kwargs={'states_ref': states_ref}))
+        lockphase = traj.add_phase('lockphase', dm.Phase(ode_class=system_passive, transcription=dm.GaussLobatto(num_segments=30, order=3), ode_init_kwargs={'states_ref': states_ref}))
         lockphase.set_time_options(fix_initial=True, fix_duration=False, initial_val=0, units='s') # set time options for simulation
 
         #states for lockphase 1 phase
@@ -188,13 +188,10 @@ def main():
     ax.set_xlabel('angle')
     ax.set_ylabel('angular velocity')
     ax.legend()
-    plt.savefig('limitcycle_compass.pdf')
+    plt.savefig('limitcycle_compass.png')
     
 
-    # animate motion
-    from animate import animate_compass
-    num_points = len(x1arr)
-    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True, name='runmultpassive.gif',gif_fps=29, iter=iterations, num_iter_points=num_iter)
+
 
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle('States Over Entire Range - Passive System')
@@ -215,6 +212,11 @@ def main():
     avgcyc = np.mean(endtimes)
     print('Average Time/Cycle = ', avgcyc)
 
+    # animate motion
+    from animate import animate_compass
+    num_points = len(x1arr)
+    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, saveFig=True,gif_fps=40, name='runmultpassive.gif', iter=iterations, num_iter_points=num_iter)
+    print(num_iter)
 
 
 if __name__ == '__main__':

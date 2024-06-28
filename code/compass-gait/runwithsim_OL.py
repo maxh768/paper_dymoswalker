@@ -336,7 +336,7 @@ if __name__ == '__main__':
 
 
     # 3) loop through traj optimization WITHOUT co design using found parameters to simulate system with open loop torque control
-    iterations = 2 # number of loops
+    iterations = 9 # number of loops
 
     for i in range(iterations):
         
@@ -407,8 +407,8 @@ if __name__ == '__main__':
     num_points = len(x1arr)
 
     from animate import animate_compass
-    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, name='openloop_cocontrol.gif', saveFig=True, gif_fps=42, iter=iterations+1, num_iter_points=num_sin_points)
-
+    animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, name='openloop_cocontrol.gif', saveFig=True, gif_fps=40, iter=iterations+1, num_iter_points=num_sin_points)
+    print(num_sin_points)
     # plot results
     fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6)
     fig.suptitle('States and Controls Over Entire Range')

@@ -4,11 +4,10 @@ import matplotlib.patches as patches
 from matplotlib import animation
 
 
-def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFig=False, gif_fps=20, iter=1, num_iter_points=90):
+def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFig=False, gif_fps=20, iter=1, num_iter_points=90, time=2.019):
     #x1: back leg
     #x2: front leg
     #phi: angle of slope
-
     l = a + b
 
     # path of stance leg tip (hip)
@@ -27,8 +26,6 @@ def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFi
     # add x and y limits
     #x_lim = [min(min(x), min(x_pole)) - cart_width / 2 - 0.1, max(max(x), max(x_pole)) + cart_width / 2 + 0.1]
     #ylim = [cart_height / 2 - l - 0.05, cart_height / 2 + l + 0.05]
-
-    extend = 500 // interval # extend all paramaters 
 
     if (iter>1): # make animation walk forward
         base_x = np.zeros(num_iter_points*iter)
@@ -54,19 +51,12 @@ def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFi
             base_x[index_next:(index_next+num_iter_points)] = x_swing[index_next-1] 
             base_y[index_next:(index_next+num_iter_points)] = y_swing[index_next-1] 
 
-        base_x = np.concatenate((base_x, np.ones(extend) * base_x[-1])) # extend base
-        base_y = np.concatenate((base_y, np.ones(extend) * base_y[-1]))
-
-    # extend all other parameters
-    x_hip = np.concatenate((x_hip, np.ones(extend) * x_hip[-1]))
-    y_hip = np.concatenate((y_hip, np.ones(extend) * y_hip[-1]))
-    x_swing = np.concatenate((x_swing, np.ones(extend) * x_swing[-1]))
-    y_swing = np.concatenate((y_swing, np.ones(extend) * y_swing[-1]))
 
 
 
 
     fig, ax = plt.subplots()
+
 
     def init():
 
@@ -77,7 +67,8 @@ def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFi
 
     def animate(i): 
         ax.clear()
-
+        ax.set_axis_off()
+        plt.axis('off')
         #plot slanted floor from initial swing leg pos to final swing leg pos
         ax.plot([0, 0], [0, 0], 'k')
         ax.plot([0, 0.8*iter*0.9], [0, -0.04*iter*0.9], 'k')
@@ -85,19 +76,19 @@ def animate_compass(x1, x2, a, b, phi, name='compass.gif', interval = 20, saveFi
         ax.plot([0, -0.8], [0, 0.04], 'k')
 
         if (iter>1): # plot stance leg if cycles>1
-            stanceleg = ax.plot([base_x[i], x_hip[i]], [base_y[i], y_hip[i]], 'o-', lw=2, color='black')
+            stanceleg = ax.plot([base_x[i], x_hip[i]], [base_y[i], y_hip[i]], 'o-', lw=2, color='green')
         else: # plot stance leg for cycles=1
-            stanceleg = ax.plot([0, x_hip[i]], [0, y_hip[i]], 'o-', lw=2, color='black')
+            stanceleg = ax.plot([0, x_hip[i]], [0, y_hip[i]], 'o-', lw=2, color='green')
 
         #plot path of the hip
-        path_stanceleg = ax.plot(x_hip[:i], y_hip[:i], '--', lw=1, color='black')
+        path_stanceleg = ax.plot(x_hip[:i], y_hip[:i], '--', lw=1, color='green')
 
         #plot swing leg
-        swingleg = ax.plot([x_swing[i], x_hip[i]], [y_swing[i], y_hip[i]], 'o-', lw=2, color='black')
+        swingleg = ax.plot([x_swing[i], x_hip[i]], [y_swing[i], y_hip[i]], 'o-', lw=2, color='green')
 
         return swingleg, stanceleg, path_stanceleg
 
-    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(x1), interval=interval, repeat=True)
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(x1), repeat=True, repeat_delay=500)
     if saveFig:
         anim.save(name, writer=animation.PillowWriter(fps=gif_fps))
     #plt.show()
