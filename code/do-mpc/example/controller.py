@@ -9,5 +9,4 @@ sys.path.append(rel_do_mpc_path)
 # Import do_mpc package:
 import do_mpc
 
-import system
-import controller
+mpc = do_mpc.controller.MPC(model)
