@@ -13,6 +13,9 @@ import do_mpc
 ## CONFIG SYSTEM
 """
 
+# set number of steps
+num_steps = 200
+
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
 
@@ -70,21 +73,21 @@ model.setup()
 mpc = do_mpc.controller.MPC(model)
 
 setup_mpc = {
-    'n_horizon': 20,
+    'n_horizon': num_steps,
     't_step': 0.1,
-    'n_robust': 0,
+    'n_robust': 1,
     'store_full_solution': True,
 }
 mpc.set_param(**setup_mpc)
 
 # obj function
-mterm = x1**2 + x2**2
-lterm = x1**1 + x2**2
+mterm = (x1)**2 + (x2)**2
+lterm = (x1)**1 + (x2)**2
 mpc.set_objective(mterm=mterm, lterm=lterm)
 
 # set r term ??
 mpc.set_rterm(
-    tau=1e-2
+    tau=10
 )
 
 # lower and upper bounds on states
@@ -94,8 +97,8 @@ mpc.bounds['upper','_x','x1'] = 1.5708 # +90 deg
 mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg\
 
 # lower and upper bounds on inputs (tau/desired pos?)
-mpc.bounds['lower','_u','tau'] = -10
-mpc.bounds['upper','_u','tau'] = 10
+mpc.bounds['lower','_u','tau'] = -3
+mpc.bounds['upper','_u','tau'] = 3
 
 # should maybe add scaling to adjust for difference in magnitude from diferent states (optinal/future)
 
@@ -162,7 +165,7 @@ ax[1].set_xlabel('time [s]')
 
 ## natural responce of system (needs collision events to be added in sys dynamics)
 u0 = np.zeros((1,1))
-for i in range(200):
+for i in range(num_steps):
     simulator.make_step(u0)
 sim_graphics.plot_results()
 # Reset the limits on all axes in graphic to show the data.
@@ -178,6 +181,23 @@ mpc_graphics.reset_axes()
 # Show the figure:
 fig.savefig('fig_runopt.png')
 
+## IMPROVE GRAPH
+# Change the color for the states:
+for line_i in mpc_graphics.pred_lines['_x', 'x1']: line_i.set_color('#1f77b4') # blue
+for line_i in mpc_graphics.pred_lines['_x', 'x22']: line_i.set_color('#ff7f0e') # orange
+# Change the color for the input:
+for line_i in mpc_graphics.pred_lines['_u', 'tau']: line_i.set_color('#1f77b4')
+
+# Make all predictions transparent:
+for line_i in mpc_graphics.pred_lines.full: line_i.set_alpha(0.2)
+
+# Get line objects (note sum of lists creates a concatenated list)
+lines = sim_graphics.result_lines['_x', 'x1']+sim_graphics.result_lines['_x', 'x2']
+ax[0].legend(lines,'12',title='state')
+# also set legend for second subplot:
+lines = sim_graphics.result_lines['_u', 'tau']
+ax[1].legend(lines,'1',title='tau')
+
 
 # finish running control loop
 simulator.reset_history()
@@ -185,7 +205,7 @@ simulator.x0 = x0
 mpc.reset_history()
 
 
-for i in range(200):
+for i in range(num_steps):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
 
@@ -195,3 +215,28 @@ mpc_graphics.plot_predictions(t_ind=0)
 sim_graphics.plot_results()
 sim_graphics.reset_axes()
 fig.savefig('mainloop.png')
+
+## SAVE RESULTS
+from do_mpc.data import save_results, load_results
+save_results([mpc, simulator])
+results = load_results('./results/results.pkl')
+
+x = results['mpc']['_x']
+#print(x)
+x1_result = x[:,0]
+x2_result = x[:,1]
+x3_result = x[:,2]
+x4_result = x[:,3]
+
+# animate motion of the compass gait
+from animate import animate_compass
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True)
+
+# animate the plot window to show real time predictions and trajectory
+from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
+def update(t_ind):
+    sim_graphics.plot_results(t_ind)
+    mpc_graphics.plot_predictions(t_ind)
+    mpc_graphics.reset_axes()
+anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
+anim.save('anim.gif', writer=animation.PillowWriter(fps=15))
