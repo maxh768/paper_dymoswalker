@@ -131,6 +131,7 @@ def traj_gen():
     x4_end = x4_end[0]
 
     newstates_final=[x1_end, x2_end, x3_end, x4_end]
+    print(newstates_final)
 
     x1_initphase = p.get_val('traj.initphase.states:x1')
     x2_initphase = p.get_val('traj.initphase.states:x2')

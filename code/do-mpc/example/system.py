@@ -14,13 +14,13 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 20
+num_steps = 50
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
 
 
-# set states
+#set states
 x1 = model.set_variable(var_type='_x', var_name='x1', shape=(1,1))
 x2 = model.set_variable(var_type='_x', var_name='x2', shape=(1,1))
 
@@ -28,8 +28,11 @@ dx1 = model.set_variable(var_type='_x', var_name='dx1', shape=(1,1))
 dx2 = model.set_variable(var_type='_x', var_name='dx2', shape=(1,1))
 
 
+
 # control / inputs
 tau = model.set_variable(var_type='_u', var_name='tau', shape=(1,1))
+
+
 
 #print('x1={}, with x1.shape={}'.format(x1, x1.shape))
 #print('x2={}, with x2.shape={}'.format(x2, x1.shape))
@@ -52,18 +55,25 @@ H11 = m*b**2
 h = -m*l*b*np.sin(x1-x2)
 G2 = -(mh*l + m*a + m*l)*g*np.sin(x2)
 G1 = m*b*g*np.sin(x1)
-K = 1 / (H11*H22 - (H12**2)) # inverse constant
+K = 1 / (H11*H22 - (H12**2)) # invers#e constant
 dx1set = (H12*K*h*dx1**2) + (H22*K*h*dx2**2) - H22*K*G1 + H12*K*G2 - (H22 + H12)*K*tau
 dx2set = (-H11*K*h*dx1**2) - (H12*K*h*dx2**2) + H12*K*G1 - H11*K*G2 + ((H12 + H11)*K*tau)
 
-#if (x1 + x2) == -2*phi:
- #   print('match')
+"""H = np.array([[-m*b, -m*l*b*np.cos(x2 - x1)], [-m*l*b*np.cos(x2 - x1), (mh + m)*(l**2) + m*a**2]])
+N = np.array([[0, m*l*b*dx[1]*np.sin(x2-x1)], [-m*l*b*dx[0]*np.sin(x2-x1), 0]])
+G = np.array([[m*g*b*np.sin(x1)],[-(mh*l + m*a + m*l)*g*np.sin(x2)]])
+U = np.array([[1],[-1]])
+xdot = np.array([[dx[0]],[dx[1]]])
+print(H.dtype)
+print(H)"""
+
 
 # set rhs
 model.set_rhs('x1',dx1)
 model.set_rhs('x2',dx2)
 model.set_rhs('dx1',dx1set)
 model.set_rhs('dx2',dx2set)
+
 
 model.setup()
 
@@ -76,7 +86,7 @@ mpc = do_mpc.controller.MPC(model)
 setup_mpc = {
     'n_horizon': num_steps,
     't_step': 0.1,
-    'n_robust': 1,
+    'n_robust': 0,
     'store_full_solution': True,
     #'supress_ipopt_output': True
 }
@@ -86,8 +96,8 @@ mpc.set_param(**setup_mpc)
 
 
 # obj function
-mterm = (x1)**2 + (x2)**2
-lterm = (x1)**1 + (x2)**2
+mterm = (x1-0.19)**2 + (x2+0.3)**2
+lterm = (x1-0.19)**1 + (x2+0.3)**2
 mpc.set_objective(mterm=mterm, lterm=lterm)
 
 # set r term ??
@@ -102,8 +112,8 @@ mpc.bounds['upper','_x','x1'] = 1.5708 # +90 deg
 mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg\
 
 # lower and upper bounds on inputs (tau/desired pos?)
-mpc.bounds['lower','_u','tau'] = -3
-mpc.bounds['upper','_u','tau'] = 3
+#mpc.bounds['lower','_u','tau'] = -3
+#mpc.bounds['upper','_u','tau'] = 3
 
 # should maybe add scaling to adjust for difference in magnitude from diferent states (optinal/future)
 
@@ -128,15 +138,15 @@ simulator.setup()
 """
 
 # initial guess
-x0 = np.array([-0.3, -0.4, 0.2, -1.05]).reshape(-1,1)
+x0 = np.array([-0.3, 0.2038, -0.41215, -1.05]).reshape(-1,1)
 simulator.x0 = x0
 mpc.x0 = x0
 mpc.set_initial_guess()
 
-print(mpc.x0['x1'])
-print(mpc.x0['x2'])
-print(mpc.x0['dx1'])
-print(mpc.x0['dx2'])
+#print(mpc.x0['x1'])
+#print(mpc.x0['x2'])
+#print(mpc.x0['dx1'])
+#print(mpc.x0['dx2'])
 
 # graphics
 import matplotlib.pyplot as plt
@@ -189,7 +199,7 @@ fig.savefig('fig_runopt.png')
 ## IMPROVE GRAPH
 # Change the color for the states:
 for line_i in mpc_graphics.pred_lines['_x', 'x1']: line_i.set_color('#1f77b4') # blue
-for line_i in mpc_graphics.pred_lines['_x', 'x22']: line_i.set_color('#ff7f0e') # orange
+for line_i in mpc_graphics.pred_lines['_x', 'x2']: line_i.set_color('#ff7f0e') # orange
 # Change the color for the input:
 for line_i in mpc_graphics.pred_lines['_u', 'tau']: line_i.set_color('#1f77b4')
 
@@ -220,15 +230,29 @@ for file in files:
     file_path = os.path.join(directory, file) 
     os.remove(file_path) 
 
-# main loop
+
+"""# main loop"""
+from calc_transition import calc_trans
+
 for i in range(num_steps):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
     #print(mpc.x0['x1',0])
     curx1 = mpc.x0['x1',0]
-    curx2 = mpc.x0['x1',0]
-    curx3 = mpc.x0['x1',0]
-    curx4 = mpc.x0['x1',0]
+    curx2 = mpc.x0['x2',0]
+    curx3 = mpc.x0['dx1',0]
+    curx4 = mpc.x0['dx2',0]
+    phibound = curx1 + curx2
+    #print('x1: ',curx1)
+    #print('x2: ',curx2)
+    print('x1 + x2:', phibound)
+    if (phibound <-0.09) and (phibound > -0.11):
+        print('TRANSITION')
+        newstates = calc_trans(curx1, curx2, curx3, curx4, m=m, mh=mh, a=a, b=b)
+        mpc.x0['x1',0] = newstates[0]
+        mpc.x0['x2',0] = newstates[1]
+        mpc.x0['dx1',0] = newstates[2]
+        mpc.x0['dx2',0] = newstates[3]
     
     
 
@@ -253,7 +277,7 @@ x4_result = x[:,3]
 
 # animate motion of the compass gait
 from animate import animate_compass
-animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True)
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=1)
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
