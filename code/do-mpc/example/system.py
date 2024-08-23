@@ -14,7 +14,7 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 200
+num_steps = 20
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
@@ -28,9 +28,7 @@ dx1 = model.set_variable(var_type='_x', var_name='dx1', shape=(1,1))
 dx2 = model.set_variable(var_type='_x', var_name='dx2', shape=(1,1))
 
 
-# control / inputs ??
-#x1_des = model.set_variable(var_type='_u', var_name='x1_des', shape=(1,1))
-#x2_des = model.set_variable(var_type='_u', var_name='x2_des', shape=(1,1))
+# control / inputs
 tau = model.set_variable(var_type='_u', var_name='tau', shape=(1,1))
 
 #print('x1={}, with x1.shape={}'.format(x1, x1.shape))
@@ -47,10 +45,7 @@ phi = 0.05
 l = a + b
 g = 9.81
 
-# set rhs
-model.set_rhs('x1',dx1)
-model.set_rhs('x2',dx2)
-
+# dynamics
 H22 = (mh + m)*(l**2) + m*a**2
 H12 = -m*l*b*np.cos(x2 - x1)
 H11 = m*b**2
@@ -61,6 +56,12 @@ K = 1 / (H11*H22 - (H12**2)) # inverse constant
 dx1set = (H12*K*h*dx1**2) + (H22*K*h*dx2**2) - H22*K*G1 + H12*K*G2 - (H22 + H12)*K*tau
 dx2set = (-H11*K*h*dx1**2) - (H12*K*h*dx2**2) + H12*K*G1 - H11*K*G2 + ((H12 + H11)*K*tau)
 
+#if (x1 + x2) == -2*phi:
+ #   print('match')
+
+# set rhs
+model.set_rhs('x1',dx1)
+model.set_rhs('x2',dx2)
 model.set_rhs('dx1',dx1set)
 model.set_rhs('dx2',dx2set)
 
@@ -77,8 +78,12 @@ setup_mpc = {
     't_step': 0.1,
     'n_robust': 1,
     'store_full_solution': True,
+    #'supress_ipopt_output': True
 }
+mpc.settings.supress_ipopt_output()
 mpc.set_param(**setup_mpc)
+
+
 
 # obj function
 mterm = (x1)**2 + (x2)**2
@@ -204,10 +209,28 @@ simulator.reset_history()
 simulator.x0 = x0
 mpc.reset_history()
 
+# delete all previous results so the animation works
+import os 
+# Specify the directory containing the files to be deleted 
+directory = './results/' 
+# Get a list of all files in the directory 
+files = os.listdir(directory) 
+# Loop through the files and delete each one 
+for file in files: 
+    file_path = os.path.join(directory, file) 
+    os.remove(file_path) 
 
+# main loop
 for i in range(num_steps):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
+    #print(mpc.x0['x1',0])
+    curx1 = mpc.x0['x1',0]
+    curx2 = mpc.x0['x1',0]
+    curx3 = mpc.x0['x1',0]
+    curx4 = mpc.x0['x1',0]
+    
+    
 
 # Plot predictions from t=0
 mpc_graphics.plot_predictions(t_ind=0)
@@ -234,6 +257,7 @@ animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True)
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
+from matplotlib import animation
 def update(t_ind):
     sim_graphics.plot_results(t_ind)
     mpc_graphics.plot_predictions(t_ind)
