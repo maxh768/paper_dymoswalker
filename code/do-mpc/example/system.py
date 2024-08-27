@@ -14,7 +14,7 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 50
+num_steps = 200
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
@@ -112,8 +112,8 @@ mpc.bounds['upper','_x','x1'] = 1.5708 # +90 deg
 mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg\
 
 # lower and upper bounds on inputs (tau/desired pos?)
-#mpc.bounds['lower','_u','tau'] = -3
-#mpc.bounds['upper','_u','tau'] = 3
+mpc.bounds['lower','_u','tau'] = -3
+mpc.bounds['upper','_u','tau'] = 3
 
 # should maybe add scaling to adjust for difference in magnitude from diferent states (optinal/future)
 
@@ -233,8 +233,14 @@ for file in files:
 
 """# main loop"""
 from calc_transition import calc_trans
-
-for i in range(num_steps):
+u0 = mpc.make_step(x0)
+x0 = simulator.make_step(u0)
+#print(mpc.x0['x1',0])
+curx1 = mpc.x0['x1',0]
+curx2 = mpc.x0['x2',0]
+curx3 = mpc.x0['dx1',0]
+curx4 = mpc.x0['dx2',0]
+for i in range(num_steps-1):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
     #print(mpc.x0['x1',0])
@@ -243,10 +249,13 @@ for i in range(num_steps):
     curx3 = mpc.x0['dx1',0]
     curx4 = mpc.x0['dx2',0]
     phibound = curx1 + curx2
-    #print('x1: ',curx1)
-    #print('x2: ',curx2)
-    print('x1 + x2:', phibound)
-    if (phibound <-0.09) and (phibound > -0.11):
+    print('x1: ',curx1)
+    print('x2: ',curx2)
+    print('x1+x2: ', phibound)
+    print('step num: ', i+2)
+    #print('x1: ', curx1)
+
+    if (phibound <-0.09) and (phibound > -0.11) and (curx1>0):
         print('TRANSITION')
         newstates = calc_trans(curx1, curx2, curx3, curx4, m=m, mh=mh, a=a, b=b)
         mpc.x0['x1',0] = newstates[0]
@@ -277,7 +286,7 @@ x4_result = x[:,3]
 
 # animate motion of the compass gait
 from animate import animate_compass
-animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=1)
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=2)
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
