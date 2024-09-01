@@ -14,7 +14,8 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 200
+num_steps = 100
+delta_t = 0.01
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
@@ -85,7 +86,7 @@ mpc = do_mpc.controller.MPC(model)
 
 setup_mpc = {
     'n_horizon': num_steps,
-    't_step': 0.1,
+    't_step': delta_t,
     'n_robust': 0,
     'store_full_solution': True,
     #'supress_ipopt_output': True
@@ -127,7 +128,7 @@ mpc.setup()
 
 simulator = do_mpc.simulator.Simulator(model)
 
-simulator.set_param(t_step = 0.1)
+simulator.set_param(t_step = delta_t)
 
 # uncertain vars (future)
 
@@ -240,10 +241,8 @@ curx1 = mpc.x0['x1',0]
 curx2 = mpc.x0['x2',0]
 curx3 = mpc.x0['dx1',0]
 curx4 = mpc.x0['dx2',0]
+numiter = 1
 for i in range(num_steps-1):
-    u0 = mpc.make_step(x0)
-    x0 = simulator.make_step(u0)
-    #print(mpc.x0['x1',0])
     curx1 = mpc.x0['x1',0]
     curx2 = mpc.x0['x2',0]
     curx3 = mpc.x0['dx1',0]
@@ -253,16 +252,17 @@ for i in range(num_steps-1):
     print('x2: ',curx2)
     print('x1+x2: ', phibound)
     print('step num: ', i+2)
-    #print('x1: ', curx1)
-
-    if (phibound <-0.09) and (phibound > -0.11) and (curx1>0):
+    if (phibound <-0.08) and (phibound > -0.135) and (curx1>0):
         print('TRANSITION')
         newstates = calc_trans(curx1, curx2, curx3, curx4, m=m, mh=mh, a=a, b=b)
-        mpc.x0['x1',0] = newstates[0]
-        mpc.x0['x2',0] = newstates[1]
-        mpc.x0['dx1',0] = newstates[2]
-        mpc.x0['dx2',0] = newstates[3]
-    
+        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
+        simulator.x0 = x0
+        numiter = numiter + 1
+        numpoints = i+2
+
+
+    u0 = mpc.make_step(x0)
+    x0 = simulator.make_step(u0)
     
 
 # Plot predictions from t=0
@@ -286,7 +286,7 @@ x4_result = x[:,3]
 
 # animate motion of the compass gait
 from animate import animate_compass
-animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=2)
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=10,)
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
