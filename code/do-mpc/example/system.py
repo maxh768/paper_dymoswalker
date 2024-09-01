@@ -14,7 +14,7 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 100
+num_steps = 300
 delta_t = 0.01
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
@@ -85,9 +85,9 @@ model.setup()
 mpc = do_mpc.controller.MPC(model)
 
 setup_mpc = {
-    'n_horizon': num_steps,
+    'n_horizon': 25,
     't_step': delta_t,
-    'n_robust': 0,
+    'n_robust': 1,
     'store_full_solution': True,
     #'supress_ipopt_output': True
 }
@@ -231,7 +231,7 @@ for file in files:
     file_path = os.path.join(directory, file) 
     os.remove(file_path) 
 
-
+phibound = [0, 0]
 """# main loop"""
 from calc_transition import calc_trans
 u0 = mpc.make_step(x0)
@@ -247,12 +247,15 @@ for i in range(num_steps-1):
     curx2 = mpc.x0['x2',0]
     curx3 = mpc.x0['dx1',0]
     curx4 = mpc.x0['dx2',0]
-    phibound = curx1 + curx2
-    print('x1: ',curx1)
-    print('x2: ',curx2)
-    print('x1+x2: ', phibound)
+    phibound[0] = phibound[1]
+    phibound[1] = curx1 + curx2
+    #print('x1: ',curx1)
+    #print('x2: ',curx2)
+    print('x1 (deg): ', curx1*(180/np.pi))
+    print('x2 (deg): ', curx2*(180/np.pi))
+    print('x1+x2: ', phibound[1])
     print('step num: ', i+2)
-    if (phibound <-0.08) and (phibound > -0.135) and (curx1>0):
+    if (((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))) and curx1>0:
         print('TRANSITION')
         newstates = calc_trans(curx1, curx2, curx3, curx4, m=m, mh=mh, a=a, b=b)
         x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
