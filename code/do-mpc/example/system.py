@@ -14,7 +14,7 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 300
+num_steps = 150
 delta_t = 0.01
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
@@ -24,9 +24,11 @@ model = do_mpc.model.Model(model_type)
 #set states
 x1 = model.set_variable(var_type='_x', var_name='x1', shape=(1,1))
 x2 = model.set_variable(var_type='_x', var_name='x2', shape=(1,1))
+x3 = model.set_variable(var_type='_x', var_name='x3',shape=(1,1))
 
 dx1 = model.set_variable(var_type='_x', var_name='dx1', shape=(1,1))
 dx2 = model.set_variable(var_type='_x', var_name='dx2', shape=(1,1))
+dx3 = model.set_variable(var_type='_x', var_name='dx3', shape=(1,1))
 
 
 
@@ -59,14 +61,6 @@ G1 = m*b*g*np.sin(x1)
 K = 1 / (H11*H22 - (H12**2)) # invers#e constant
 dx1set = (H12*K*h*dx1**2) + (H22*K*h*dx2**2) - H22*K*G1 + H12*K*G2 - (H22 + H12)*K*tau
 dx2set = (-H11*K*h*dx1**2) - (H12*K*h*dx2**2) + H12*K*G1 - H11*K*G2 + ((H12 + H11)*K*tau)
-
-"""H = np.array([[-m*b, -m*l*b*np.cos(x2 - x1)], [-m*l*b*np.cos(x2 - x1), (mh + m)*(l**2) + m*a**2]])
-N = np.array([[0, m*l*b*dx[1]*np.sin(x2-x1)], [-m*l*b*dx[0]*np.sin(x2-x1), 0]])
-G = np.array([[m*g*b*np.sin(x1)],[-(mh*l + m*a + m*l)*g*np.sin(x2)]])
-U = np.array([[1],[-1]])
-xdot = np.array([[dx[0]],[dx[1]]])
-print(H.dtype)
-print(H)"""
 
 
 # set rhs
