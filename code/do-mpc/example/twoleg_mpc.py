@@ -14,8 +14,8 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 150
-delta_t = 0.01
+num_steps = 220
+delta_t = 0.03
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
@@ -24,11 +24,9 @@ model = do_mpc.model.Model(model_type)
 #set states
 x1 = model.set_variable(var_type='_x', var_name='x1', shape=(1,1))
 x2 = model.set_variable(var_type='_x', var_name='x2', shape=(1,1))
-x3 = model.set_variable(var_type='_x', var_name='x3',shape=(1,1))
 
 dx1 = model.set_variable(var_type='_x', var_name='dx1', shape=(1,1))
 dx2 = model.set_variable(var_type='_x', var_name='dx2', shape=(1,1))
-dx3 = model.set_variable(var_type='_x', var_name='dx3', shape=(1,1))
 
 
 
@@ -79,7 +77,7 @@ model.setup()
 mpc = do_mpc.controller.MPC(model)
 
 setup_mpc = {
-    'n_horizon': 25,
+    'n_horizon': 70,
     't_step': delta_t,
     'n_robust': 1,
     'store_full_solution': True,
@@ -181,7 +179,7 @@ sim_graphics.plot_results()
 # Reset the limits on all axes in graphic to show the data.
 sim_graphics.reset_axes()
 # Show the figure:
-fig.savefig('fig_runsimulator.png')
+#fig.savefig('fig_runsimulator.png')
 
 # run optimizer
 u0 = mpc.make_step(x0)
@@ -189,7 +187,7 @@ sim_graphics.clear()
 mpc_graphics.plot_predictions()
 mpc_graphics.reset_axes()
 # Show the figure:
-fig.savefig('fig_runopt.png')
+#fig.savefig('fig_runopt.png')
 
 ## IMPROVE GRAPH
 # Change the color for the states:
@@ -267,7 +265,7 @@ mpc_graphics.plot_predictions(t_ind=0)
 # Plot results until current time
 sim_graphics.plot_results()
 sim_graphics.reset_axes()
-fig.savefig('mainloop.png')
+fig.savefig('twoleg_mainloop.png')
 
 ## SAVE RESULTS
 from do_mpc.data import save_results, load_results
@@ -283,7 +281,7 @@ x4_result = x[:,3]
 
 # animate motion of the compass gait
 from animate import animate_compass
-animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=10,)
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
@@ -293,4 +291,4 @@ def update(t_ind):
     mpc_graphics.plot_predictions(t_ind)
     mpc_graphics.reset_axes()
 anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
-anim.save('anim.gif', writer=animation.PillowWriter(fps=15))
+anim.save('twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))
