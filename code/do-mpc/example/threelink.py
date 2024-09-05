@@ -14,8 +14,8 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 50
-delta_t = 0.1
+num_steps = 100
+delta_t = 0.01
 
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
@@ -138,8 +138,8 @@ mpc.set_param(**setup_mpc)
 
 
 # obj function
-mterm = (x1-0.19)**2 + (x2+0.3)**2
-lterm = (x1-0.19)**1 + (x2+0.3)**2
+mterm = (x1+0.3)**2 + (x3-0.19)**2
+lterm = (x1+0.3)**1 + (x3-0.19)**2
 mpc.set_objective(mterm=mterm, lterm=lterm)
 
 # set r term ??
@@ -180,12 +180,12 @@ simulator.setup()
 """
 ## CONTROL LOOP
 """
-x10 = -0.3
-x20 = 0.2038
-x30 = 0.2038
-x40 = -0.41215
-x50 = -1.05
-x60 = -1.05
+x10 = .19
+x20 = -0.25
+x30 = -0.25
+x40 = -1.05
+x50 = -1
+x60 = -1
 # initial guess
 x0 = np.array([x10, x20, x30, x40, x50, x60]).reshape(-1,1)
 simulator.x0 = x0
@@ -276,44 +276,27 @@ for file in files:
     file_path = os.path.join(directory, file) 
     os.remove(file_path) 
 
-phibound = [0, 0]
-"""# main loop"""
+
 from calc_transition import calc_trans
-"""u0 = mpc.make_step(x0)
-x0 = simulator.make_step(u0)
-#print(mpc.x0['x1',0])
-curx1 = mpc.x0['x1',0]
-curx2 = mpc.x0['x2',0]
-curx3 = mpc.x0['dx1',0]
-curx4 = mpc.x0['dx2',0]
-numiter = 1"""
 for i in range(num_steps):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
+    stepnum = i+1
 
-    """curx1 = mpc.x0['x1',0]
+    curx1 = mpc.x0['x1',0]
     curx2 = mpc.x0['x2',0]
-    curx3 = mpc.x0['dx1',0]
-    curx4 = mpc.x0['dx2',0]
-    phibound[0] = phibound[1]
-    phibound[1] = curx1 + curx2
-    #print('x1: ',curx1)
-    #print('x2: ',curx2)
-    print('x1 (deg): ', curx1*(180/np.pi))
-    print('x2 (deg): ', curx2*(180/np.pi))
-    print('x1+x2: ', phibound[1])
-    print('step num: ', i+2)
-    if (((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))) and curx1>0:
-        print('TRANSITION')
-        newstates = calc_trans(curx1, curx2, curx3, curx4, m=m, mh=mh, a=a, b=b)
-        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
-        simulator.x0 = x0
-        numiter = numiter + 1
-        numpoints = i+2
+    curx3 = mpc.x0['x3',0]
+    curdx1 = mpc.x0['dx1',0]
+    curdx2 = mpc.x0['dx2',0]
+    curdx3 = mpc.x0['dx3',0]
+    #print('x2: ', curx2)
+    #print('x3: ', curx3)
+    print('x2-x3: ' ,curx2-curx3)
+    if (x2-x3) < 0:
+        #knee strike
+        dummy = 1
+    
 
-
-    u0 = mpc.make_step(x0)
-    x0 = simulator.make_step(u0)"""
     
 
 # Plot predictions from t=0
