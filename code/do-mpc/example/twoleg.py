@@ -259,13 +259,13 @@ for i in range(num_steps-1):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
     
-
+twoleg_dir = './research_template/twoleg_graphs/'
 # Plot predictions from t=0
 mpc_graphics.plot_predictions(t_ind=0)
 # Plot results until current time
 sim_graphics.plot_results()
 sim_graphics.reset_axes()
-fig.savefig('twoleg_mainloop.png')
+fig.savefig(twoleg_dir + 'twoleg_mainloop.png')
 
 ## SAVE RESULTS
 from do_mpc.data import save_results, load_results
@@ -281,7 +281,7 @@ x4_result = x[:,3]
 
 # animate motion of the compass gait
 from animate import animate_compass
-animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=20,name=twoleg_dir + 'twoleg_compass.gif')
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
@@ -291,4 +291,4 @@ def update(t_ind):
     mpc_graphics.plot_predictions(t_ind)
     mpc_graphics.reset_axes()
 anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
-anim.save('twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))
+anim.save(twoleg_dir + 'twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))

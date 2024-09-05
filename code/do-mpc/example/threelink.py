@@ -14,8 +14,8 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 150
-delta_t = 0.01
+num_steps = 50
+delta_t = 0.1
 
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
@@ -55,6 +55,7 @@ g=9.81
 L = a1+b1+a2+b2
 ls = a1+b1
 lt = a2+b2
+phi = .05
 
 
 # dynamic matrix (will be inverted)
@@ -150,7 +151,9 @@ mpc.set_rterm(
 mpc.bounds['lower','_x','x1'] = -1.5708 # -90 deg
 mpc.bounds['lower','_x','x2'] = -1.5708 # -90 deg
 mpc.bounds['upper','_x','x1'] = 1.5708 # +90 deg
-mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg\
+mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg
+mpc.bounds['upper','_x','x3'] = 1.5708 # +90 deg
+mpc.bounds['lower','_x','x3'] = -1.5708 # +90 deg
 
 # lower and upper bounds on inputs (tau/desired pos?)
 mpc.bounds['lower','_u','tau'] = -3
@@ -177,17 +180,17 @@ simulator.setup()
 """
 ## CONTROL LOOP
 """
-
+x10 = -0.3
+x20 = 0.2038
+x30 = 0.2038
+x40 = -0.41215
+x50 = -1.05
+x60 = -1.05
 # initial guess
-x0 = np.array([-0.3, 0.2038, -0.41215, -1.05]).reshape(-1,1)
+x0 = np.array([x10, x20, x30, x40, x50, x60]).reshape(-1,1)
 simulator.x0 = x0
 mpc.x0 = x0
 mpc.set_initial_guess()
-
-#print(mpc.x0['x1'])
-#print(mpc.x0['x2'])
-#print(mpc.x0['dx1'])
-#print(mpc.x0['dx2'])
 
 # graphics
 import matplotlib.pyplot as plt
@@ -209,6 +212,7 @@ for g in [sim_graphics, mpc_graphics]:
     # Plot the angle positions (phi_1, phi_2, phi_2) on the first axis:
     g.add_line(var_type='_x', var_name='x1', axis=ax[0])
     g.add_line(var_type='_x', var_name='x2', axis=ax[0])
+    g.add_line(var_type='_x', var_name='x3', axis=ax[0])
 
     # Plot the set motor positions (phi_m_1_set, phi_m_2_set) on the second axis:
     g.add_line(var_type='_u', var_name='tau', axis=ax[1])
@@ -227,7 +231,7 @@ sim_graphics.plot_results()
 # Reset the limits on all axes in graphic to show the data.
 sim_graphics.reset_axes()
 # Show the figure:
-fig.savefig('fig_runsimulator.png')
+#fig.savefig('fig_runsimulator.png')
 
 # run optimizer
 u0 = mpc.make_step(x0)
@@ -235,12 +239,13 @@ sim_graphics.clear()
 mpc_graphics.plot_predictions()
 mpc_graphics.reset_axes()
 # Show the figure:
-fig.savefig('fig_runopt.png')
+#fig.savefig('fig_runopt.png')
 
 ## IMPROVE GRAPH
 # Change the color for the states:
 for line_i in mpc_graphics.pred_lines['_x', 'x1']: line_i.set_color('#1f77b4') # blue
 for line_i in mpc_graphics.pred_lines['_x', 'x2']: line_i.set_color('#ff7f0e') # orange
+for line_i in mpc_graphics.pred_lines['_x', 'x3']: line_i.set_color('#ff0eeb') # purple
 # Change the color for the input:
 for line_i in mpc_graphics.pred_lines['_u', 'tau']: line_i.set_color('#1f77b4')
 
@@ -248,8 +253,8 @@ for line_i in mpc_graphics.pred_lines['_u', 'tau']: line_i.set_color('#1f77b4')
 for line_i in mpc_graphics.pred_lines.full: line_i.set_alpha(0.2)
 
 # Get line objects (note sum of lists creates a concatenated list)
-lines = sim_graphics.result_lines['_x', 'x1']+sim_graphics.result_lines['_x', 'x2']
-ax[0].legend(lines,'12',title='state')
+lines = sim_graphics.result_lines['_x', 'x1']+sim_graphics.result_lines['_x', 'x2']+sim_graphics.result_lines['_x','x3']
+ax[0].legend(lines,'123',title='state')
 # also set legend for second subplot:
 lines = sim_graphics.result_lines['_u', 'tau']
 ax[1].legend(lines,'1',title='tau')
@@ -274,16 +279,19 @@ for file in files:
 phibound = [0, 0]
 """# main loop"""
 from calc_transition import calc_trans
-u0 = mpc.make_step(x0)
+"""u0 = mpc.make_step(x0)
 x0 = simulator.make_step(u0)
 #print(mpc.x0['x1',0])
 curx1 = mpc.x0['x1',0]
 curx2 = mpc.x0['x2',0]
 curx3 = mpc.x0['dx1',0]
 curx4 = mpc.x0['dx2',0]
-numiter = 1
-for i in range(num_steps-1):
-    curx1 = mpc.x0['x1',0]
+numiter = 1"""
+for i in range(num_steps):
+    u0 = mpc.make_step(x0)
+    x0 = simulator.make_step(u0)
+
+    """curx1 = mpc.x0['x1',0]
     curx2 = mpc.x0['x2',0]
     curx3 = mpc.x0['dx1',0]
     curx4 = mpc.x0['dx2',0]
@@ -305,7 +313,7 @@ for i in range(num_steps-1):
 
 
     u0 = mpc.make_step(x0)
-    x0 = simulator.make_step(u0)
+    x0 = simulator.make_step(u0)"""
     
 
 # Plot predictions from t=0
@@ -313,7 +321,8 @@ mpc_graphics.plot_predictions(t_ind=0)
 # Plot results until current time
 sim_graphics.plot_results()
 sim_graphics.reset_axes()
-fig.savefig('mainloop.png')
+threeleg_dir = './research_template/threeleg_graphs/'
+fig.savefig(threeleg_dir + 'mainloop.png')
 
 ## SAVE RESULTS
 from do_mpc.data import save_results, load_results
@@ -326,10 +335,12 @@ x1_result = x[:,0]
 x2_result = x[:,1]
 x3_result = x[:,2]
 x4_result = x[:,3]
+x5_result = x[:,4]
+x6_result = x[:,5]
 
 # animate motion of the compass gait
-from animate import animate_compass
-animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=10,)
+from animate_threelink import animate_threelink
+animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=10, name=threeleg_dir+'threeleg.gif')
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
@@ -339,4 +350,4 @@ def update(t_ind):
     mpc_graphics.plot_predictions(t_ind)
     mpc_graphics.reset_axes()
 anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
-anim.save('anim.gif', writer=animation.PillowWriter(fps=15))
+anim.save(threeleg_dir + 'states.gif', writer=animation.PillowWriter(fps=15))
