@@ -277,7 +277,7 @@ for file in files:
     os.remove(file_path) 
 
 
-from calc_transition import calc_trans
+from threelink_trans import kneestrike
 for i in range(num_steps):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
@@ -292,9 +292,9 @@ for i in range(num_steps):
     #print('x2: ', curx2)
     #print('x3: ', curx3)
     print('x2-x3: ' ,curx2-curx3)
-    if (x2-x3) < 0:
+    if (curx2-curx3) < 0:
         #knee strike
-        dummy = 1
+        newstates = kneestrike(curx1, curx2, curx3, curdx1, curdx2, curdx3)
     
 
     
