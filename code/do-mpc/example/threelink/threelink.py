@@ -276,26 +276,41 @@ for file in files:
     file_path = os.path.join(directory, file) 
     os.remove(file_path) 
 
-
+kneelock = False
 from threelink_trans import kneestrike
 for i in range(num_steps):
-    u0 = mpc.make_step(x0)
-    x0 = simulator.make_step(u0)
-    stepnum = i+1
 
-    curx1 = mpc.x0['x1',0]
-    curx2 = mpc.x0['x2',0]
-    curx3 = mpc.x0['x3',0]
-    curdx1 = mpc.x0['dx1',0]
-    curdx2 = mpc.x0['dx2',0]
-    curdx3 = mpc.x0['dx3',0]
+    stepnum = i+1
+    curx1 = float(mpc.x0['x1',0])
+    curx2 = float(mpc.x0['x2',0])
+    curx3 = float(mpc.x0['x3',0])
+    curdx1 = float(mpc.x0['dx1',0])
+    curdx2 = float(mpc.x0['dx2',0])
+    curdx3 = float(mpc.x0['dx3',0])
+    #print('x1: ', curx1)
     #print('x2: ', curx2)
     #print('x3: ', curx3)
-    print('x2-x3: ' ,curx2-curx3)
+    #print('x4: ', curdx1)
+    #print('x5: ', curdx2)
+    #print('x6: ', curdx3)
+    #print('x2-x3: ' ,curx2-curx3)
+    print(stepnum)
+    if (kneelock == True):
+        x0 = np.array([x0[0], x0[1], x0[1], x0[3], x0[4], x0[4]]).reshape(-1,1)
+        simulator.x0 = x0
+        print('forcing')
+
     if (curx2-curx3) < 0:
         #knee strike
-        newstates = kneestrike(curx1, curx2, curx3, curdx1, curdx2, curdx3)
-    
+        newstates = kneestrike(curx1, curx2, curx3, curdx1, curdx2, curdx3, a1=a1, a2=a2, b1=b1, b2=b2, mh=mh, mt=mt, ms=ms)
+        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3], newstates[4], newstates[5]]).reshape(-1,1)
+        simulator.x0 = x0
+        print('KNEESTRIKE')
+        kneelock = True
+    u0 = mpc.make_step(x0)
+    x0 = simulator.make_step(u0)
+
+
 
     
 
@@ -323,7 +338,7 @@ x6_result = x[:,5]
 
 # animate motion of the compass gait
 from animate_threelink import animate_threelink
-animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=10, name=threeleg_dir+'threeleg.gif')
+animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=18, name=threeleg_dir+'threeleg.gif')
 
 # animate the plot window to show real time predictions and trajectory
 from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
