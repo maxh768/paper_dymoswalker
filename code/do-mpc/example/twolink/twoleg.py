@@ -103,11 +103,11 @@ mpc.set_rterm(
 mpc.bounds['lower','_x','x1'] = -1.5708 # -90 deg
 mpc.bounds['lower','_x','x2'] = -1.5708 # -90 deg
 mpc.bounds['upper','_x','x1'] = 1.5708 # +90 deg
-mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg\
+mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg
 
 # lower and upper bounds on inputs (tau/desired pos?)
-mpc.bounds['lower','_u','tau'] = -3
-mpc.bounds['upper','_u','tau'] = 3
+#mpc.bounds['lower','_u','tau'] = -3
+#mpc.bounds['upper','_u','tau'] = 3
 
 # should maybe add scaling to adjust for difference in magnitude from diferent states (optinal/future)
 
@@ -176,7 +176,7 @@ from calc_transition import calc_trans
 phibound = [1,1]
 ## natural responce of system (needs collision events to be added in sys dynamics)
 u0 = np.zeros((1,1))
-for i in range(num_steps):
+"""for i in range(num_steps):
     x0 = simulator.make_step(u0)
     print(i+1)
     #print(x0)
@@ -210,7 +210,7 @@ sim_graphics.clear()
 mpc_graphics.plot_predictions()
 mpc_graphics.reset_axes()
 # Show the figure:
-#fig.savefig('fig_runopt.png')
+#fig.savefig('fig_runopt.png')"""
 
 ## IMPROVE GRAPH
 # Change the color for the states:
@@ -246,7 +246,7 @@ for file in files:
     file_path = os.path.join(directory, file) 
     os.remove(file_path) 
 
-"""phibound = [0, 0]
+phibound = [0, 0]
 # main loop
 from calc_transition import calc_trans
 u0 = mpc.make_step(x0)
@@ -314,4 +314,4 @@ def update(t_ind):
     mpc_graphics.plot_predictions(t_ind)
     mpc_graphics.reset_axes()
 anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
-anim.save(twoleg_dir + 'twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))"""
+anim.save(twoleg_dir + 'twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))
