@@ -56,7 +56,8 @@ H11 = m*b**2
 h = -m*l*b*np.sin(x1-x2)
 G2 = -(mh*l + m*a + m*l)*g*np.sin(x2)
 G1 = m*b*g*np.sin(x1)
-K = 1 / (H11*H22 - (H12**2)) # invers#e constant
+
+K = 1 / (H11*H22 - (H12**2)) # inverse constant
 dx1set = (H12*K*h*dx1**2) + (H22*K*h*dx2**2) - H22*K*G1 + H12*K*G2 - (H22 + H12)*K*tau
 dx2set = (-H11*K*h*dx1**2) - (H12*K*h*dx2**2) + H12*K*G1 - H11*K*G2 + ((H12 + H11)*K*tau)
 
