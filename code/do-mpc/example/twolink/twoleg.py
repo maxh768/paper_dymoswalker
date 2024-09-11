@@ -14,8 +14,8 @@ import do_mpc
 """
 
 # set number of steps
-num_steps = 220
-delta_t = 0.03
+num_steps = 380
+delta_t = 0.01
 
 model_type = 'continuous' # either 'discrete' or 'continuous'
 model = do_mpc.model.Model(model_type)
@@ -170,17 +170,39 @@ for g in [sim_graphics, mpc_graphics]:
 ax[0].set_ylabel('angle position [rad]')
 ax[1].set_ylabel('torque [N*m]')
 ax[1].set_xlabel('time [s]')
-
-
+x1_result = []
+x2_result = []
+from calc_transition import calc_trans
+phibound = [1,1]
 ## natural responce of system (needs collision events to be added in sys dynamics)
 u0 = np.zeros((1,1))
 for i in range(num_steps):
-    simulator.make_step(u0)
+    x0 = simulator.make_step(u0)
+    print(i+1)
+    #print(x0)
+    curx1 = x0[0]
+    curx2 = x0[1]
+    curx3 = x0[2]
+    curx4 = x0[3]
+    phibound[0] = phibound[1]
+    phibound[1] = curx1 + curx2
+    if (((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))) and curx1>0:
+        print('TRANSITION')
+        newstates = calc_trans(curx1, curx2, curx3, curx4, m=m, mh=mh, a=a, b=b)
+        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
+        simulator.x0 = x0
+    #if (i+1) % 10 == 0:
+    x1_result = np.concatenate((x1_result, curx1))
+    x2_result = np.concatenate((x2_result, curx2))
+
 sim_graphics.plot_results()
 # Reset the limits on all axes in graphic to show the data.
 sim_graphics.reset_axes()
 # Show the figure:
-#fig.savefig('fig_runsimulator.png')
+fig.savefig('fig_runsimulator.png')
+
+from animate import animate_compass
+animate_compass(x1_result, x2_result, a, b, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
 
 # run optimizer
 u0 = mpc.make_step(x0)
@@ -224,8 +246,8 @@ for file in files:
     file_path = os.path.join(directory, file) 
     os.remove(file_path) 
 
-phibound = [0, 0]
-"""# main loop"""
+"""phibound = [0, 0]
+# main loop
 from calc_transition import calc_trans
 u0 = mpc.make_step(x0)
 x0 = simulator.make_step(u0)
@@ -292,4 +314,4 @@ def update(t_ind):
     mpc_graphics.plot_predictions(t_ind)
     mpc_graphics.reset_axes()
 anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
-anim.save(twoleg_dir + 'twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))
+anim.save(twoleg_dir + 'twoleg_statesanim.gif', writer=animation.PillowWriter(fps=15))"""
