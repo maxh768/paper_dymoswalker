@@ -2,6 +2,11 @@ import numpy as np
 from numpy.linalg import inv
 
 def calc_trans(x1, x2, x3, x4, m=5, mh=10, a=0.5, b=0.5):
+    x1 = x1[0]
+    x2 = x2[0]
+    x3 = x3[0]
+    x4 = x4[0]
+    
     l = a+b
 
     alpha = np.abs((x2 - x1)) / 2 # angle between legs

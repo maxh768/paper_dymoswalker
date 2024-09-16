@@ -18,7 +18,7 @@ def control_locked(model, delta_t=0.01):
         'store_full_solution': True,
         #'supress_ipopt_output': True
     }
-    #mpc.settings.supress_ipopt_output()
+    mpc.settings.supress_ipopt_output()
     mpc.set_param(**setup_mpc)
 
 

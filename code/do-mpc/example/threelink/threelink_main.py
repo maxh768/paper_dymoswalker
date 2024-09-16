@@ -9,8 +9,8 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 7000
-delta_t = 0.0001
+num_steps = 1200
+delta_t = 0.001
 
 #import unlocked
 from sys_unlocked import model_unlocked
@@ -71,56 +71,6 @@ mpc_unlocked.x0 = x0
 mpc_unlocked.set_initial_guess()
 
 
-# graphics
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-# Customizing Matplotlib:
-mpl.rcParams['font.size'] = 18
-mpl.rcParams['lines.linewidth'] = 3
-mpl.rcParams['axes.grid'] = True
-
-mpc_graphics = do_mpc.graphics.Graphics(mpc_unlocked.data)
-sim_graphics = do_mpc.graphics.Graphics(simulator_unlocked.data)
-
-
-# We just want to create the plot and not show it right now. This "inline magic" supresses the output.
-fig, ax = plt.subplots(2, sharex=True, figsize=(16,9))
-fig.align_ylabels()
-
-for g in [sim_graphics, mpc_graphics]:
-    # Plot the angle positions (phi_1, phi_2, phi_2) on the first axis:
-    g.add_line(var_type='_x', var_name='x1', axis=ax[0])
-    g.add_line(var_type='_x', var_name='x2', axis=ax[0])
-    g.add_line(var_type='_x', var_name='x3', axis=ax[0])
-
-    # Plot the set motor positions (phi_m_1_set, phi_m_2_set) on the second axis:
-    g.add_line(var_type='_u', var_name='tau', axis=ax[1])
-
-
-ax[0].set_ylabel('angle position [rad]')
-ax[1].set_ylabel('torque [N*m]')
-ax[1].set_xlabel('time [s]')
-
-
-## IMPROVE GRAPH
-# Change the color for the states:
-for line_i in mpc_graphics.pred_lines['_x', 'x1']: line_i.set_color('#1f77b4') # blue
-for line_i in mpc_graphics.pred_lines['_x', 'x2']: line_i.set_color('#ff7f0e') # orange
-for line_i in mpc_graphics.pred_lines['_x', 'x3']: line_i.set_color('#ff0eeb') # purple
-# Change the color for the input:
-for line_i in mpc_graphics.pred_lines['_u', 'tau']: line_i.set_color('#1f77b4')
-
-# Make all predictions transparent:
-for line_i in mpc_graphics.pred_lines.full: line_i.set_alpha(0.2)
-
-# Get line objects (note sum of lists creates a concatenated list)
-lines = sim_graphics.result_lines['_x', 'x1']+sim_graphics.result_lines['_x', 'x2']+sim_graphics.result_lines['_x','x3']
-ax[0].legend(lines,'123',title='state')
-# also set legend for second subplot:
-lines = sim_graphics.result_lines['_u', 'tau']
-ax[1].legend(lines,'1',title='tau')
-
-
 # finish running control loop
 simulator_unlocked.reset_history()
 simulator_unlocked.x0 = x0
@@ -141,15 +91,22 @@ for file in files:
 """
 MAIN LOOP
 """
-#curx6 = float(mpc_unlocked.x0['dx3',0])
 x1_result = []
 x2_result = []
 x3_result = []
+x4_result = []
+x5_result = []
+x6_result = []
+time_result = []
+
 num_locked = 0
 marker = 0
 phibound = [1,1]
 kneelock = False
 stop = False
+innertime = 0
+outertime = 0
+
 from threelink_trans import kneestrike, heelstrike
 for i in range(num_steps):
     stepnum = i+1
@@ -159,24 +116,32 @@ for i in range(num_steps):
     curx4 = x0[3]
     curx5 = x0[4]
     curx6 = x0[5]
-    print([curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
-    print(stepnum)
+    curtime = np.array([(stepnum*delta_t) + innertime])
+    outertime = float(curtime)
+    #print([curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
+    print('3 Link Step #: ', stepnum)
 
     u0 = mpc_unlocked.make_step(x0)
     x0 = simulator_unlocked.make_step(u0)
-    if (i+1) % 100 == 0:
+    if (i+1) % 10 == 0:
         x1_result = np.concatenate((x1_result, curx1))
         x2_result = np.concatenate((x2_result, curx2))
         x3_result = np.concatenate((x3_result, curx3))
+        x4_result = np.concatenate((x4_result, curx4))
+        x5_result = np.concatenate((x5_result, curx5))
+        x6_result = np.concatenate((x6_result, curx6))
+        time_result = np.concatenate((time_result, curtime))
+    # start inner loop
     if (curx2-curx3 < 0) and (stepnum-marker > 5):
         print('KNEESTRIKE')
-        print('before kneestrike: ', [curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
+        num_locked = 0
+        #print('before kneestrike: ', [curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
         marker = stepnum
         kneelock = True
         #knee strike
         newstates = kneestrike(curx1, curx2, curx3, curx4, curx5, curx6, a1=a1, a2=a2, b1=b1, b2=b2, mh=mh, mt=mt, ms=ms)
-        print('after kneestrike: ', newstates)
-        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
+        #print('after kneestrike: ', newstates)
+        x0 = np.array([newstates[1], newstates[0], newstates[3], newstates[2]]).reshape(-1,1)
         mpc_locked.x0 = x0
         mpc_locked.set_initial_guess()
         simulator_locked.x0 = x0
@@ -188,52 +153,59 @@ for i in range(num_steps):
             curx2= x0[1]
             curx3= x0[2]
             curx4 = x0[3]
+            curtime = np.array([(num_locked*delta_t) + outertime])
+            innertime = float(curtime)
 
             phibound[0] = phibound[1]
             phibound[1] = curx1+ curx2
             #print(curx1)
             #print(curx2)
-            print(num_locked)
-            print(phibound[1])
-            if (((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))):
+            print('2 Link Step #: ', num_locked)
+            #print(phibound[1])
+            if ((((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1)))) and (num_locked>3):
                 print('HEELSTRIKE')
-                newstates = heelstrike(curx1, curx2, curx3, curx4, a1=a1, a2=a2, b1=b1, b2=b2, mh=mh, mt=mt, ms=ms)
-                print('after heelstrike: ', newstates)
-                print(newstates)
-                x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3], newstates[4], newstates[5]]).reshape(-1,1)
+                from calc_transition import calc_trans
+                newstates = calc_trans(curx1, curx2, curx3, curx4)
+                #newstates = heelstrike(curx2, curx1, curx4, curx1, a1=a1, a2=a2, b1=b1, b2=b2, mh=10, mt=5, ms=.5)
+                #print('after heelstrike: ', newstates)
+                #print(newstates)
+                x0 = np.array([newstates[1], newstates[0], newstates[0], newstates[3], newstates[2], newstates[2]]).reshape(-1,1)
                 simulator_unlocked.x0 = x0
-                num_locked = 0
                 kneelock = False
             
             if kneelock == True:
                 u0 = mpc_locked.make_step(x0)
                 x0 = simulator_locked.make_step(u0)
-                if (num_locked) % 100 == 0:
-                    x1_result = np.concatenate((x1_result, curx1))
-                    x2_result = np.concatenate((x2_result, curx2))
-                    x3_result = np.concatenate((x3_result, curx2))
-            if num_locked > 10000:
+                if (num_locked) % 10 == 0:
+                    x1_result = np.concatenate((x1_result, curx2))
+                    x2_result = np.concatenate((x2_result, curx1))
+                    x3_result = np.concatenate((x3_result, curx1))
+                    x4_result = np.concatenate((x4_result, curx4))
+                    x5_result = np.concatenate((x5_result, curx3))
+                    x6_result = np.concatenate((x6_result, curx3))
+                    time_result = np.concatenate((time_result, curtime))
+            if num_locked > 500:
                 stop = True
                 break
+        # end inner loop
         if stop==True:
             break
       
 
 
-# Plot predictions from t=0
-#mpc_graphics.plot_predictions(t_ind=0)
-# Plot results until current time
-#sim_graphics.plot_results()
-#sim_graphics.reset_axes()
+"""
+DATA MANAGEMENT + PLOT RESULTS
+"""
+
+# directory to plot in
 threeleg_dir = './research_template/threeleg_graphs/'
-#fig.savefig(threeleg_dir + 'mainloop.png')
+
 
 ## SAVE RESULTS
 from do_mpc.data import save_results, load_results
 save_results([mpc_unlocked, simulator_unlocked])
 results = load_results('./results/results.pkl')
-
-x = results['mpc']['_x']
+#x = results['mpc']['_x']
 #print(x)
 """x1_result = x[:,0]
 x2_result = x[:,1]
@@ -242,28 +214,16 @@ x4_result = x[:,3]
 x5_result = x[:,4]
 x6_result = x[:,5]"""
 
+
 # animate motion of the compass gait
 from animate_threelink import animate_threelink
 animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=18, name=threeleg_dir+'threeleg.gif')
 
-os.remove('./results/results.pkl')
-save_results([mpc_locked, simulator_locked])
-results = load_results('./results/results.pkl')
-x = results['mpc']['_x']
-#print(x)
-x1_result = x[:,0]
-x2_result = x[:,1]
+#import plot fns
+from plot_results import plot_timeseries
 
-from animate import animate_compass
-#animate_compass(x2_result, x1_result, L/2, L/2, phi, saveFig=True, gif_fps=18)
+#plot the time history of the states + controls
+plot_timeseries(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result, time_result)
 
 
-"""# animate the plot window to show real time predictions and trajectory
-from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
-from matplotlib import animation
-def update(t_ind):
-    sim_graphics.plot_results(t_ind)
-    mpc_graphics.plot_predictions(t_ind)
-    mpc_graphics.reset_axes()
-anim = FuncAnimation(fig, update, frames=num_steps, repeat=False)
-anim.save(threeleg_dir + 'states.gif', writer=animation.PillowWriter(fps=15))"""
+

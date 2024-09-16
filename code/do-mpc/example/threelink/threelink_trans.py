@@ -80,15 +80,12 @@ def heelstrike(x1, x2, x3, x4,a1=0.375, a2=0.175, b1=0.125, b2=0.325, mh=0.5, mt
 
     H = np.dot(Qp_inv, Qm)
 
-    oldvelo = np.array([[x3], [x4]])
-
-    newstates = np.dot(H, oldvelo)
 
     newx1 = x2
     newx2 = x1
     newx3 = x1
-    newx4 = newstates[0,0]
-    newx5 = newstates[1,0]
-    newx6 = newstates[1,0]
+    newx4 = H[0,0]*x3 + H[0, 1]*x4
+    newx5 = H[1,0]*x3 + H[1, 1]*x4
+    newx6 = newx5
     new_states_init = [newx1, newx2, newx3, newx4, newx5, newx6]
     return new_states_init

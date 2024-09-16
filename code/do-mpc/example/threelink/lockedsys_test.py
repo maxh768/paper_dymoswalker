@@ -9,8 +9,8 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 400
-delta_t = 0.01
+num_steps = 4000
+delta_t = 0.001
 
 #import locked
 from sys_locked import model_locked
@@ -43,13 +43,13 @@ simulator_locked.set_param(t_step = delta_t)
 simulator_locked.setup()
 
 """INITIAL GUESS"""
-x10 = -0.1
-x20 = 0.25
-x30 = -1
-x40 = 0.6
+#x10 = -0.1
+#x20 = 0.25
+#x30 = -1
+#x40 = 0.6
 
 # initial guess
-x0 = np.array([x10, x20, x30, x40]).reshape(-1,1)
+x0 = np.array([-0.3, 0.2038, -0.41215, -1.05]).reshape(-1,1)
 simulator_locked.x0 = x0
 mpc_locked.x0 = x0
 mpc_locked.set_initial_guess()
@@ -103,12 +103,12 @@ for i in range(num_steps):
     phibound[1] = curx1 + curx2
     if ((((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))) and curx1>0) and (i+1)>5:
         print('TRANSITION')
-        newstates = calc_trans(curx2, curx1, curx4, curx3 )
-        x0 = np.array([newstates[1], newstates[0], newstates[3], newstates[2]]).reshape(-1,1)
+        newstates = calc_trans(curx1, curx2, curx3, curx4 )
+        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
         simulator_locked.x0 = x0
-    #if (i+1) % 10 == 0:
-    x1_result = np.concatenate((x1_result, curx1))
-    x2_result = np.concatenate((x2_result, curx2))
+    if (i+1) % 10 == 0:
+        x1_result = np.concatenate((x1_result, curx1))
+        x2_result = np.concatenate((x2_result, curx2))
 
 sim_graphics.plot_results()
 # Reset the limits on all axes in graphic to show the data.
@@ -117,7 +117,7 @@ sim_graphics.reset_axes()
 fig.savefig('fig_runsimulator.png')
 
 from animate import animate_compass
-animate_compass(x2_result, x1_result, L/2, L/2, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
+animate_compass(x1_result, x2_result, L/2, L/2, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
 
 
 
