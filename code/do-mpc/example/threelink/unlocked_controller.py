@@ -14,7 +14,7 @@ def control_unlocked(model, delta_t=0.01):
     mpc = do_mpc.controller.MPC(model)
 
     setup_mpc = {
-        'n_horizon': 25,
+        'n_horizon': 70,
         't_step': delta_t,
         'n_robust': 1,
         'store_full_solution': True,

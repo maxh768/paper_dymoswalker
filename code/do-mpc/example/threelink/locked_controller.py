@@ -12,13 +12,13 @@ def control_locked(model, delta_t=0.01):
     mpc = do_mpc.controller.MPC(model)
 
     setup_mpc = {
-        'n_horizon': 25,
+        'n_horizon': 70,
         't_step': delta_t,
         'n_robust': 1,
         'store_full_solution': True,
         #'supress_ipopt_output': True
     }
-    mpc.settings.supress_ipopt_output()
+    #mpc.settings.supress_ipopt_output()
     mpc.set_param(**setup_mpc)
 
 

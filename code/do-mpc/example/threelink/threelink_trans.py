@@ -2,6 +2,12 @@ import numpy as np
 from numpy.linalg import inv
 
 def kneestrike(x1, x2, x3, x4, x5, x6,a1=0.375, a2=0.175, b1=0.125, b2=0.325, mh=0.5, mt=0.5, ms=0.05):
+    x1 = x1[0]
+    x2 = x2[0]
+    x3 = x3[0]
+    x4 = x4[0]
+    x5 = x5[0]
+    x6 = x6[0]
 
     ls = a1+b1
     lt = a2+b2
@@ -47,6 +53,10 @@ def kneestrike(x1, x2, x3, x4, x5, x6,a1=0.375, a2=0.175, b1=0.125, b2=0.325, mh
     return new_states_init
 
 def heelstrike(x1, x2, x3, x4,a1=0.375, a2=0.175, b1=0.125, b2=0.325, mh=0.5, mt=0.5, ms=0.05):
+    x1 = x1[0]
+    x2 = x2[0]
+    x3 = x3[0]
+    x4 = x4[0]
 
     ls = a1+b1
     lt = a2+b2

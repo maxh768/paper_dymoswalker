@@ -9,8 +9,8 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 100
-delta_t = 0.01
+num_steps = 7000
+delta_t = 0.0001
 
 #import unlocked
 from sys_unlocked import model_unlocked
@@ -142,7 +142,9 @@ for file in files:
 MAIN LOOP
 """
 #curx6 = float(mpc_unlocked.x0['dx3',0])
-
+x1_result = []
+x2_result = []
+x3_result = []
 num_locked = 0
 marker = 0
 phibound = [1,1]
@@ -151,22 +153,24 @@ stop = False
 from threelink_trans import kneestrike, heelstrike
 for i in range(num_steps):
     stepnum = i+1
-    curx1 = x0[0,0]
-    curx2 = x0[1,0]
-    curx3 = x0[2,0]
-    curx4 = x0[3,0]
-    curx5 = x0[4,0]
-    curx6 = x0[5,0]
-    #print(x0)
-    print([curx1, curx2, curx3, curx4, curx5, curx6])
+    curx1 = x0[0]
+    curx2 = x0[1]
+    curx3 = x0[2]
+    curx4 = x0[3]
+    curx5 = x0[4]
+    curx6 = x0[5]
+    print([curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
     print(stepnum)
 
     u0 = mpc_unlocked.make_step(x0)
     x0 = simulator_unlocked.make_step(u0)
-
+    if (i+1) % 100 == 0:
+        x1_result = np.concatenate((x1_result, curx1))
+        x2_result = np.concatenate((x2_result, curx2))
+        x3_result = np.concatenate((x3_result, curx3))
     if (curx2-curx3 < 0) and (stepnum-marker > 5):
         print('KNEESTRIKE')
-        print('before kneestrike: ', [curx1, curx2, curx3, curx4, curx5, curx6])
+        print('before kneestrike: ', [curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
         marker = stepnum
         kneelock = True
         #knee strike
@@ -180,10 +184,10 @@ for i in range(num_steps):
         while(kneelock==True):
         #for k in range(50):
             num_locked = num_locked+1
-            curx1= x0[0,0]
-            curx2= x0[1,0]
-            curx3= x0[2,0]
-            curx4 = x0[3,0]
+            curx1= x0[0]
+            curx2= x0[1]
+            curx3= x0[2]
+            curx4 = x0[3]
 
             phibound[0] = phibound[1]
             phibound[1] = curx1+ curx2
@@ -204,7 +208,11 @@ for i in range(num_steps):
             if kneelock == True:
                 u0 = mpc_locked.make_step(x0)
                 x0 = simulator_locked.make_step(u0)
-            if num_locked > 100:
+                if (num_locked) % 100 == 0:
+                    x1_result = np.concatenate((x1_result, curx1))
+                    x2_result = np.concatenate((x2_result, curx2))
+                    x3_result = np.concatenate((x3_result, curx2))
+            if num_locked > 10000:
                 stop = True
                 break
         if stop==True:
@@ -227,12 +235,12 @@ results = load_results('./results/results.pkl')
 
 x = results['mpc']['_x']
 #print(x)
-x1_result = x[:,0]
+"""x1_result = x[:,0]
 x2_result = x[:,1]
 x3_result = x[:,2]
 x4_result = x[:,3]
 x5_result = x[:,4]
-x6_result = x[:,5]
+x6_result = x[:,5]"""
 
 # animate motion of the compass gait
 from animate_threelink import animate_threelink
@@ -247,11 +255,11 @@ x1_result = x[:,0]
 x2_result = x[:,1]
 
 from animate import animate_compass
-animate_compass(x2_result, x1_result, L/2, L/2, phi, saveFig=True, gif_fps=18)
+#animate_compass(x2_result, x1_result, L/2, L/2, phi, saveFig=True, gif_fps=18)
 
 
-# animate the plot window to show real time predictions and trajectory
-"""from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
+"""# animate the plot window to show real time predictions and trajectory
+from matplotlib.animation import FuncAnimation, FFMpegWriter, ImageMagickWriter
 from matplotlib import animation
 def update(t_ind):
     sim_graphics.plot_results(t_ind)

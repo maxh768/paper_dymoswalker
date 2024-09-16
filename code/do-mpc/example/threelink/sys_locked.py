@@ -57,8 +57,8 @@ def model_locked():
     U1 = 0
     U2 = 0
 
-    dx1set = -(H_I12*B21*dx1 + H_I11*B12*dx2) - (H_I11*G1 + H_I12*G2) + (H_I11*U1 + H_I12*U2)*tau
-    dx2set = -(H_I22*B21*dx1 + H_I21*B12*dx2) - (H_I21*G1 + H_I22*G2) + (H_I12*U1 + H_I22*U2)*tau
+    dx1set = -(H_I12*B21*dx1 + H_I11*B12*dx2) - (H_I11*G1 + H_I12*G2) #+ (H_I11*U1 + H_I12*U2)*tau
+    dx2set = -(H_I22*B21*dx1 + H_I21*B12*dx2) - (H_I21*G1 + H_I22*G2) #+ (H_I12*U1 + H_I22*U2)*tau
 
     # set rhs
     model.set_rhs('x1',dx1)
