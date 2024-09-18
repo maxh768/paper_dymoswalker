@@ -47,7 +47,7 @@ def animate_threelink(x1, x2, x3, a1, b1, a2, b2, phi, name='compass.gif', inter
         ax.plot([0, 0], [0, 0], 'k')
         #ax.plot([0, 0.8*iter*0.9], [0, -0.04*iter*0.9], 'k')
         ax.plot([0, 0], [0, 0], 'k')
-        ax.plot([0, -0.8], [0, 0.04], 'k')
+        ax.plot([0, -0.8*2], [0, 0.04*2], 'k')
         stanceleg = ax.plot([0, x_hip[i]], [0, y_hip[i]], 'o-', lw=2, color='green')
 
         #plot path of the hip

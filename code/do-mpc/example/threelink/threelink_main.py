@@ -9,8 +9,8 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 1200
-delta_t = 0.001
+num_steps = 350000000000
+delta_t = 1*10**(-20)
 
 #import unlocked
 from sys_unlocked import model_unlocked
@@ -123,24 +123,25 @@ for i in range(num_steps):
 
     u0 = mpc_unlocked.make_step(x0)
     x0 = simulator_unlocked.make_step(u0)
-    if (i+1) % 10 == 0:
-        x1_result = np.concatenate((x1_result, curx1))
-        x2_result = np.concatenate((x2_result, curx2))
-        x3_result = np.concatenate((x3_result, curx3))
-        x4_result = np.concatenate((x4_result, curx4))
-        x5_result = np.concatenate((x5_result, curx5))
-        x6_result = np.concatenate((x6_result, curx6))
-        time_result = np.concatenate((time_result, curtime))
+    #if (i+1) % 10 == 0:
+    x1_result = np.concatenate((x1_result, curx1))
+    x2_result = np.concatenate((x2_result, curx2))
+    x3_result = np.concatenate((x3_result, curx3))
+    x4_result = np.concatenate((x4_result, curx4))
+    x5_result = np.concatenate((x5_result, curx5))
+    x6_result = np.concatenate((x6_result, curx6))
+    time_result = np.concatenate((time_result, curtime))
+
     # start inner loop
     if (curx2-curx3 < 0) and (stepnum-marker > 5):
         print('KNEESTRIKE')
         num_locked = 0
-        #print('before kneestrike: ', [curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
+        print('before kneestrike: ', [curx1[0], curx2[0], curx3[0], curx4[0], curx5[0], curx6[0]])
         marker = stepnum
         kneelock = True
         #knee strike
         newstates = kneestrike(curx1, curx2, curx3, curx4, curx5, curx6, a1=a1, a2=a2, b1=b1, b2=b2, mh=mh, mt=mt, ms=ms)
-        #print('after kneestrike: ', newstates)
+        print('after kneestrike: ', newstates)
         x0 = np.array([newstates[1], newstates[0], newstates[3], newstates[2]]).reshape(-1,1)
         mpc_locked.x0 = x0
         mpc_locked.set_initial_guess()
@@ -158,13 +159,11 @@ for i in range(num_steps):
 
             phibound[0] = phibound[1]
             phibound[1] = curx1+ curx2
-            #print(curx1)
-            #print(curx2)
             print('2 Link Step #: ', num_locked)
-            #print(phibound[1])
             if ((((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1)))) and (num_locked>3):
                 print('HEELSTRIKE')
                 from calc_transition import calc_trans
+                #print('before heelstrike')
                 newstates = calc_trans(curx1, curx2, curx3, curx4)
                 #newstates = heelstrike(curx2, curx1, curx4, curx1, a1=a1, a2=a2, b1=b1, b2=b2, mh=10, mt=5, ms=.5)
                 #print('after heelstrike: ', newstates)
@@ -172,19 +171,20 @@ for i in range(num_steps):
                 x0 = np.array([newstates[1], newstates[0], newstates[0], newstates[3], newstates[2], newstates[2]]).reshape(-1,1)
                 simulator_unlocked.x0 = x0
                 kneelock = False
+                stop = True
             
             if kneelock == True:
                 u0 = mpc_locked.make_step(x0)
                 x0 = simulator_locked.make_step(u0)
-                if (num_locked) % 10 == 0:
-                    x1_result = np.concatenate((x1_result, curx2))
-                    x2_result = np.concatenate((x2_result, curx1))
-                    x3_result = np.concatenate((x3_result, curx1))
-                    x4_result = np.concatenate((x4_result, curx4))
-                    x5_result = np.concatenate((x5_result, curx3))
-                    x6_result = np.concatenate((x6_result, curx3))
-                    time_result = np.concatenate((time_result, curtime))
-            if num_locked > 500:
+                #if (num_locked) % 10 == 0:
+                x1_result = np.concatenate((x1_result, curx2))
+                x2_result = np.concatenate((x2_result, curx1))
+                x3_result = np.concatenate((x3_result, curx1))
+                x4_result = np.concatenate((x4_result, curx4))
+                x5_result = np.concatenate((x5_result, curx3))
+                x6_result = np.concatenate((x6_result, curx3))
+                time_result = np.concatenate((time_result, curtime))
+            if num_locked > 5000:
                 stop = True
                 break
         # end inner loop
@@ -217,13 +217,16 @@ x6_result = x[:,5]"""
 
 # animate motion of the compass gait
 from animate_threelink import animate_threelink
-animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=18, name=threeleg_dir+'threeleg.gif')
+#animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=18, name=threeleg_dir+'threeleg.gif')
 
 #import plot fns
-from plot_results import plot_timeseries
+from plot_results import plot_timeseries, plot_gait
 
 #plot the time history of the states + controls
 plot_timeseries(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result, time_result)
+
+# plot limit cycle
+plot_gait(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result)
 
 
 

@@ -46,7 +46,8 @@ def kneestrike(x1, x2, x3, x4, x5, x6,a1=0.375, a2=0.175, b1=0.125, b2=0.325, mh
     newx2 = x2
     newx3 = newstates[0,0]
     newx4 = newstates[1,0]
-
+    print('Old swing velocity: ', x5)
+    print('New swing velocity: ', x4)
 
     new_states_init = [newx1, newx2, newx3, newx4]
     #print(new_states_init)

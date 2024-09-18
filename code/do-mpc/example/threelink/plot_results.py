@@ -29,3 +29,15 @@ def plot_timeseries(x1arr, x2arr, x3arr, x4arr, x5arr, x6arr, timearr, dir='./re
     
 
     plt.savefig(dir+name, bbox_inches='tight')
+
+def plot_gait(x1arr, x2arr, x3arr, x4arr, x5arr, x6arr, dir='./research_template/threeleg_graphs/', name='three_gait'):
+
+    #upper link of one leg
+    fig, ax = plt.subplots()
+    ax.plot(x2arr, x5arr, linewidth=1.0, label='x2x5')
+    ax.plot(x1arr, x4arr, linewidth=1.0, label='x1x4')
+    ax.plot(x3arr, x6arr, linewidth=1.0, label='x3x6')
+    ax.set_xlabel('angle')
+    ax.set_ylabel('angular velocity')
+    ax.legend()
+    plt.savefig(dir+name)
