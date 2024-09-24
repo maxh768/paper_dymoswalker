@@ -27,7 +27,7 @@ def model_locked():
     a = 0.5
     b = 0.5
     mh = 10
-    m = .1
+    m = 5
     phi = 0.05
     l = a + b
     g = 9.81

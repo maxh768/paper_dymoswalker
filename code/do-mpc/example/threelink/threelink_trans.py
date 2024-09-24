@@ -13,9 +13,9 @@ def kneestrike(x1, x2, x3, x4, x5, x6,a1=0.375, a2=0.175, b1=0.125, b2=0.325, mh
     lt = a2+b2
     L = ls + lt
     
-    alpha = np.cos(x1-x2)
-    beta = np.cos(x1-x3)
-    gamma = np.cos(x2-x3)
+    alpha = x1-x2
+    beta = x1-x3
+    gamma = x2-x3
 
     # pre matrix
     Q11_minus = -(ms*lt + mt*b2)*L*np.cos(alpha) - ms*b1*L*np.cos(beta) + (mt + ms +mh)*L**2 + ms*a1**2 + mt*(ls+a2)**2
