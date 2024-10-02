@@ -171,7 +171,7 @@ for i in range(num_steps):
                 x0 = np.array([newstates[1], newstates[0], newstates[0], newstates[3], newstates[2], newstates[2]]).reshape(-1,1)
                 simulator_unlocked.x0 = x0
                 kneelock = False
-                #stop = True
+                stop = True
             
             if kneelock == True:
                 u0 = mpc_locked.make_step(x0)
