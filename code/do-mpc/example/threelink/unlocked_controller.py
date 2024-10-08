@@ -31,26 +31,27 @@ def control_unlocked(model, delta_t=0.01):
     x5 = model.x['dx2']
     x6 = model.x['dx3']
     # obj function
-    mterm = (x1+0.3)**2 + (x3-0.19)**2
-    lterm = (x1+0.3)**1 + (x3-0.19)**2
+    mterm = (x1+0.106)**2 + (x2-0.326)**2 + (x3-0.331)**2
+    lterm = (x1+0.106)**2 + (x2-0.326)**2 + (x3-0.331)**2
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
     # set r term ??
     mpc.set_rterm(
-        tau=10
+        tau_hip=1
     )
 
     # lower and upper bounds on states
-    mpc.bounds['lower','_x','x1'] = -1.5708 # -90 deg
+    """mpc.bounds['lower','_x','x1'] = -1.5708 # -90 deg
     mpc.bounds['lower','_x','x2'] = -1.5708 # -90 deg
     mpc.bounds['upper','_x','x1'] = 1.5708 # +90 deg
     mpc.bounds['upper','_x','x2'] = 1.5708 # +90 deg
     mpc.bounds['upper','_x','x3'] = 1.5708 # +90 deg
-    mpc.bounds['lower','_x','x3'] = -1.5708 # +90 deg
+    mpc.bounds['lower','_x','x3'] = -1.5708 # +90 deg"""
 
     # lower and upper bounds on inputs (tau/desired pos?)
-    mpc.bounds['lower','_u','tau'] = -3
-    mpc.bounds['upper','_u','tau'] = 3
+    mpc.bounds['lower','_u','tau_hip'] = -3
+    mpc.bounds['upper','_u','tau_hip'] = 3
+
 
     # should maybe add scaling to adjust for difference in magnitude from diferent states (optinal/future)
 

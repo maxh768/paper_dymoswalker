@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # timeseries plots for all states
-def plot_timeseries(x1arr, x2arr, x3arr, x4arr, x5arr, x6arr, timearr, dir='./research_template/threeleg_graphs/', name='timeseries_data'):
-    fig, (ax1, ax2) = plt.subplots(2)
+def plot_timeseries(x1arr, x2arr, x3arr, x4arr, x5arr, x6arr, tauarr, timearr, dir='./research_template/threeleg_graphs/', name='timeseries_data'):
+    fig, (ax1, ax2, ax3) = plt.subplots(3)
     fig.suptitle('States and Controls Over Entire Range')
     fig.tight_layout()
 
@@ -20,12 +20,13 @@ def plot_timeseries(x1arr, x2arr, x3arr, x4arr, x5arr, x6arr, timearr, dir='./re
     ax2.legend()
 
     #control
-    #ax3.plot(timearr, tauarr)
-  
+    ax3.plot(timearr, tauarr, label='Torque at Hip')
+    ax3.legend()
+
     ax1.set_ylabel('Angle (rad)')
     ax2.set_ylabel('Angular Velocity (rad/s)')
-    #ax3.set_ylabel('Tau (N*m)')
-    ax2.set_xlabel('time (s)')
+    ax3.set_ylabel('Tau (N*m)')
+    ax3.set_xlabel('time (s)')
     
 
     plt.savefig(dir+name, bbox_inches='tight')

@@ -21,7 +21,9 @@ def model_locked():
     dx2 = model.set_variable(var_type='_x', var_name='dx2', shape=(1,1))
 
     # control / inputs
-    tau = model.set_variable(var_type='_u', var_name='tau', shape=(1,1))
+    tau_hip = model.set_variable(var_type='_u', var_name='tau_hip', shape=(1,1)) # torque at hip
+    #tau_knee = model.set_variable(var_type='_u', var_name='tau_knee', shape=(1,1)) # torque at knee
+    #tau_ankle = model.set_variable(var_type='_u', var_name='tau_ankle', shape=(1,1)) # torque at ankle
 
     # set params
     a1 = 0.375
@@ -60,8 +62,8 @@ def model_locked():
     HI_21 = -H21*k
     HI_22 = H11*k
 
-    dx1set = -(HI_12*B21*dx1 + HI_11*B12*dx2) - (HI_11*g1 + HI_12*g2) # add forcing term
-    dx2set = -(HI_22*B21*dx1 + HI_21*B12*dx2) - (HI_21*g1 + HI_22*g2) # add forcing term
+    dx1set = -(HI_12*B21*dx1 + HI_11*B12*dx2) - (HI_11*g1 + HI_12*g2) + (HI_11-HI_12)*-tau_hip
+    dx2set = -(HI_22*B21*dx1 + HI_21*B12*dx2) - (HI_21*g1 + HI_22*g2) + (HI_21-HI_22)*-tau_hip
 
 
 

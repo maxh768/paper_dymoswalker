@@ -22,7 +22,9 @@ def model_unlocked():
     dx3 = model.set_variable(var_type='_x', var_name='dx3', shape=(1,1))
 
     # control / inputs
-    tau = model.set_variable(var_type='_u', var_name='tau', shape=(1,1))
+    tau_hip = model.set_variable(var_type='_u', var_name='tau_hip', shape=(1,1)) # torque at hip
+    #tau_knee = model.set_variable(var_type='_u', var_name='tau_knee', shape=(1,1)) # torque at knee
+    #tau_ankle = model.set_variable(var_type='_u', var_name='tau_ankle', shape=(1,1)) # torque at ankle
 
 
 
@@ -87,14 +89,11 @@ def model_unlocked():
     H_I31 = H_I13
     H_I32 = H_I23
 
-    # U matrix (torque)
-    U1 = 0
-    U2 = 0
-    U3 = 0
 
-    dx1set = -( (H_I12*B21 + H_I13*B31)*dx1 + (H_I11*B12 + H_I13*B32)*dx2 + (H_I11*B13 + H_I12*B23)*dx3 ) - (H_I11*G1 + H_I12*G2 + H_I13*G3) #+ (H_I11*U1 + H_I12*U2 + H_I13*U3)*tau
-    dx2set = -( (H_I22*B21 + H_I23*B31)*dx1 + (H_I21*B12 + H_I23*B32)*dx2 + (H_I21*B13 + H_I22*B23)*dx3 ) - (H_I21*G1 + H_I22*G2 + H_I23*G3) #+ (H_I21*U1 + H_I22*U2 + H_I23*U3)*tau
-    dx3set = -( (H_I32*B21 + H_I33*B31)*dx1 + (H_I31*B12 + H_I33*B32)*dx2 + (H_I31*B13 + H_I32*B23)*dx3 ) - (H_I31*G1 + H_I32*G2 + H_I33*G3) #+ (H_I31*U1 + H_I32*U2 + H_I33*U3)*tau
+
+    dx1set = -( (H_I12*B21 + H_I13*B31)*dx1 + (H_I11*B12 + H_I13*B32)*dx2 + (H_I11*B13 + H_I12*B23)*dx3 ) - (H_I11*G1 + H_I12*G2 + H_I13*G3) + (H_I11-H_I12)*-tau_hip
+    dx2set = -( (H_I22*B21 + H_I23*B31)*dx1 + (H_I21*B12 + H_I23*B32)*dx2 + (H_I21*B13 + H_I22*B23)*dx3 ) - (H_I21*G1 + H_I22*G2 + H_I23*G3) + (H_I21-H_I22)*-tau_hip
+    dx3set = -( (H_I32*B21 + H_I33*B31)*dx1 + (H_I31*B12 + H_I33*B32)*dx2 + (H_I31*B13 + H_I32*B23)*dx3 ) - (H_I31*G1 + H_I32*G2 + H_I33*G3) #+ (H_I31-H_I32)*tau_hip
 
     # set rhs
     model.set_rhs('x1',dx1)

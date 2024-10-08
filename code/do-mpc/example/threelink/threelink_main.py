@@ -9,7 +9,7 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 8000
+num_steps = 4000
 delta_t = .001
 
 #import unlocked
@@ -98,6 +98,7 @@ x4_result = []
 x5_result = []
 x6_result = []
 time_result = []
+tau_result = []
 
 num_locked = 0
 marker = 0
@@ -123,6 +124,8 @@ for i in range(num_steps):
 
     u0 = mpc_unlocked.make_step(x0)
     x0 = simulator_unlocked.make_step(u0)
+    curtau = u0[0]
+    #print(curtau)
     if (i+1) % 10 == 0:
         x1_result = np.concatenate((x1_result, curx1))
         x2_result = np.concatenate((x2_result, curx2))
@@ -130,6 +133,7 @@ for i in range(num_steps):
         x4_result = np.concatenate((x4_result, curx4))
         x5_result = np.concatenate((x5_result, curx5))
         x6_result = np.concatenate((x6_result, curx6))
+        tau_result = np.concatenate((tau_result, curtau))
         time_result = np.concatenate((time_result, curtime))
 
     # start inner loop
@@ -154,6 +158,7 @@ for i in range(num_steps):
             curx2= x0[1]
             curx3= x0[2]
             curx4 = x0[3]
+            curtau = u0[0]
             curtime = np.array([(num_locked*delta_t) + outertime])
             innertime = float(curtime)
 
@@ -163,7 +168,7 @@ for i in range(num_steps):
             if ((((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1)))) and (num_locked>3):
                 print('HEELSTRIKE')
                 from calc_transition import calc_trans
-                #print('before heelstrike')
+                print('before heelstrike', [curx1[0], curx2[0]])
                 newstates = calc_trans(curx1, curx2, curx3, curx4)
                 #newstates = heelstrike(curx2, curx1, curx4, curx1, a1=a1, a2=a2, b1=b1, b2=b2, mh=10, mt=5, ms=.5)
                 #print('after heelstrike: ', newstates)
@@ -183,6 +188,7 @@ for i in range(num_steps):
                     x4_result = np.concatenate((x4_result, curx3))
                     x5_result = np.concatenate((x5_result, curx4))
                     x6_result = np.concatenate((x6_result, curx4))
+                    tau_result = np.concatenate((tau_result, curtau))
                     time_result = np.concatenate((time_result, curtime))
             if num_locked > 5000:
                 stop = True
@@ -223,7 +229,7 @@ animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=T
 from plot_results import plot_timeseries, plot_gait
 
 #plot the time history of the states + controls
-plot_timeseries(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result, time_result)
+plot_timeseries(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result,tau_result, time_result)
 
 # plot limit cycle
 plot_gait(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result)
