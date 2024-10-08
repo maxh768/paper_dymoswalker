@@ -9,7 +9,7 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 2000
+num_steps = 8000
 delta_t = .001
 
 #import unlocked
@@ -142,7 +142,7 @@ for i in range(num_steps):
         #knee strike
         newstates = kneestrike(curx1, curx2, curx3, curx4, curx5, curx6, a1=a1, a2=a2, b1=b1, b2=b2, mh=mh, mt=mt, ms=ms)
         print('after kneestrike: ', newstates)
-        x0 = np.array([newstates[1], newstates[0], newstates[3], newstates[2]]).reshape(-1,1)
+        x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
         mpc_locked.x0 = x0
         mpc_locked.set_initial_guess()
         simulator_locked.x0 = x0
@@ -168,21 +168,21 @@ for i in range(num_steps):
                 #newstates = heelstrike(curx2, curx1, curx4, curx1, a1=a1, a2=a2, b1=b1, b2=b2, mh=10, mt=5, ms=.5)
                 #print('after heelstrike: ', newstates)
                 #print(newstates)
-                x0 = np.array([newstates[1], newstates[0], newstates[0], newstates[3], newstates[2], newstates[2]]).reshape(-1,1)
+                x0 = np.array([newstates[0], newstates[1], newstates[1], newstates[2], newstates[3], newstates[3]]).reshape(-1,1)
                 simulator_unlocked.x0 = x0
                 kneelock = False
-                stop = True
+                #stop = True
             
             if kneelock == True:
                 u0 = mpc_locked.make_step(x0)
                 x0 = simulator_locked.make_step(u0)
                 if (num_locked) % 10 == 0:
-                    x1_result = np.concatenate((x1_result, curx2))
-                    x2_result = np.concatenate((x2_result, curx1))
-                    x3_result = np.concatenate((x3_result, curx1))
-                    x4_result = np.concatenate((x4_result, curx4))
-                    x5_result = np.concatenate((x5_result, curx3))
-                    x6_result = np.concatenate((x6_result, curx3))
+                    x1_result = np.concatenate((x1_result, curx1))
+                    x2_result = np.concatenate((x2_result, curx2))
+                    x3_result = np.concatenate((x3_result, curx2))
+                    x4_result = np.concatenate((x4_result, curx3))
+                    x5_result = np.concatenate((x5_result, curx4))
+                    x6_result = np.concatenate((x6_result, curx4))
                     time_result = np.concatenate((time_result, curtime))
             if num_locked > 5000:
                 stop = True
@@ -201,13 +201,13 @@ DATA MANAGEMENT + PLOT RESULTS
 threeleg_dir = './research_template/threeleg_graphs/'
 
 
-## SAVE RESULTS
+"""## SAVE RESULTS
 from do_mpc.data import save_results, load_results
 save_results([mpc_unlocked, simulator_unlocked])
 results = load_results('./results/results.pkl')
 #x = results['mpc']['_x']
 #print(x)
-"""x1_result = x[:,0]
+x1_result = x[:,0]
 x2_result = x[:,1]
 x3_result = x[:,2]
 x4_result = x[:,3]

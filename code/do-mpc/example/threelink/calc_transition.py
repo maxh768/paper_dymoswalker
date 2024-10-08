@@ -1,28 +1,32 @@
 import numpy as np
 from numpy.linalg import inv
 
-def calc_trans(x1, x2, x3, x4, m=5, mh=10, a=0.5, b=0.5):
+def calc_trans(x1, x2, x3, x4, mh=.5, m1=.05, m2=.5, a1=.375, a2=.175, b1=0.125, b2=0.325):
     x1 = x1[0]
     x2 = x2[0]
     x3 = x3[0]
     x4 = x4[0]
     
-    l = a+b
+    l1 = a1+b1
+    l2 = a2+b2
+    L = l1+l2
 
-    alpha = np.abs((x2 - x1)) / 2 # angle between legs
+    alpha = np.abs((x2 - x1)) # angle between legs
     alpha = float(alpha)
-    # Q+ matrix
-    Qp11 = m*b*(b-l*np.cos(2*alpha))
-    Qp12 = m*l*(l-b*np.cos(2*alpha)) + m*a**2 + mh*l**2
-    Qp21 = m*b**2
-    Qp22 = -m*b*l*np.cos(2*alpha)
-  
-    #Q- matrix
-    Qm11 = -m*a*b
-    Qm12 = -m*a*b + (mh*l**2 + 2*m*a*l)*np.cos(2*alpha)
-    Qm21 = 0
-    Qm22 = -m*a*b
-        
+
+    # plus matrix
+    Qp11 = -(m1*(b1+l2) + m2*b2)*L*np.cos(alpha) + m2*(l1+a2)**2 + (mh+m1+m2)*L**2 + m1*a1**2
+    Qp12 = -(m1*(b1+l2) + m2*b2)*L*np.cos(alpha) + m1*(l2+b1)**2 + m2*b2**2
+    Qp21 = -(m1*(b1+l2) + m2*b2)*L*np.cos(alpha)
+    Qp22 = m1*(l2+b1)**2 + m2*b2**2
+
+    # minus matrix
+    Qm12 = -m1*a1*(l2+b1) - m2*b2*(l1+a2)
+    Qm11 = (mh*L + 2*m2*(a2+l1) + m1*a1)*L*np.cos(alpha) + Qm12
+    Qm21 = Qm12
+    Qm22 = 0
+
+
     Qplus = np.array([[Qp11, Qp12], [Qp21, Qp22]])
     Qminus = np.array([[Qm11, Qm12], [Qm21, Qm22]])
 
@@ -36,5 +40,5 @@ def calc_trans(x1, x2, x3, x4, m=5, mh=10, a=0.5, b=0.5):
     newx3 = H[0,0]*x3 + H[0, 1]*x4
     newx4 = H[1,0]*x3 + H[1, 1]*x4
 
-    new_states_init = [x2, x1, newx3, newx4]
+    new_states_init = [x2, x1, newx3, newx4] # check this
     return new_states_init

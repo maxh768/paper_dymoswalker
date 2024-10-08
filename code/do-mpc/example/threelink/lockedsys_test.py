@@ -18,19 +18,19 @@ model_locked = model_locked()
 from locked_controller import control_locked
 mpc_locked = control_locked(model_locked, delta_t=delta_t)
 
-# set params from model 
+# set params
 a1 = 0.375
 b1 = 0.125
 a2 = 0.175
 b2 = 0.325
-mh = 0.5
-mt = 0.5
-ms = 0.05
-g=9.81
+mh = .5
+m1 = 0.05
+m2 = 0.5
+g = 9.81
+l1 = a1+b1
+l2 = a2+b2
 L = a1+b1+a2+b2
-ls = a1+b1
-lt = a2+b2
-phi = .05
+phi = 0.05
 
 """
 ## CONFIG SIMULATOR
@@ -43,13 +43,13 @@ simulator_locked.set_param(t_step = delta_t)
 simulator_locked.setup()
 
 """INITIAL GUESS"""
-#x10 = -0.1
-#x20 = 0.25
-#x30 = -1
-#x40 = 0.6
+x10 = -0.1
+x20 = 0.2
+x30 = -.65
+x40 = 0.41215
 
 # initial guess
-x0 = np.array([-0.3, 0.2038, -0.41215, -1.05]).reshape(-1,1)
+x0 = np.array([x10, x20, x30, x40]).reshape(-1,1)
 simulator_locked.x0 = x0
 mpc_locked.x0 = x0
 mpc_locked.set_initial_guess()
@@ -93,7 +93,7 @@ phibound = [1,1]
 u0 = np.zeros((1,1))
 for i in range(num_steps):
     x0 = simulator_locked.make_step(u0)
-    print(i+1)
+    
     #print(x0)
     curx1 = x0[0]
     curx2 = x0[1]
@@ -101,14 +101,18 @@ for i in range(num_steps):
     curx4 = x0[3]
     phibound[0] = phibound[1]
     phibound[1] = curx1 + curx2
-    if ((((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))) and curx1>0) and (i+1)>5:
-        print('TRANSITION')
-        newstates = calc_trans(curx1, curx2, curx3, curx4 )
+    
+    if ((((phibound[0] > -0.1) and (phibound[1] < -0.1)) or ((phibound[0] <-0.1) and (phibound[1] > -0.1))) and curx1<-.15) and (i+1)>5:
+        print('-------------------TRANSITION-------------------')
+        newstates = calc_trans(curx1, curx2, curx3, curx4, mh=mh, m1=m1, m2=m2, a1=a1, a2=a2, b1=b1, b2=b2)
         x0 = np.array([newstates[0], newstates[1], newstates[2], newstates[3]]).reshape(-1,1)
         simulator_locked.x0 = x0
-    if (i+1) % 10 == 0:
+    if (i+1) % 20 == 0:
         x1_result = np.concatenate((x1_result, curx1))
         x2_result = np.concatenate((x2_result, curx2))
+        print('phi: ',phibound[0])
+        print('i: ', i+1)
+        print('x1: ', curx1)
 
 sim_graphics.plot_results()
 # Reset the limits on all axes in graphic to show the data.
@@ -117,7 +121,7 @@ sim_graphics.reset_axes()
 fig.savefig('fig_runsimulator.png')
 
 from animate import animate_compass
-animate_compass(x1_result, x2_result, L/2, L/2, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
+animate_compass(x2_result, x1_result, L/2, L/2, phi, iter=1, saveFig=True, gif_fps=20,name='twoleg_compass.gif')
 
 
 

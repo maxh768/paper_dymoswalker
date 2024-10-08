@@ -24,25 +24,45 @@ def model_locked():
     tau = model.set_variable(var_type='_u', var_name='tau', shape=(1,1))
 
     # set params
-    a = 0.5
-    b = 0.5
-    mh = 10
-    m = 5
-    phi = 0.05
-    l = a + b
+    a1 = 0.375
+    b1 = 0.125
+    a2 = 0.175
+    b2 = 0.325
+    mh = 0.5
+    m1 = 0.05
+    m2 = 0.5
     g = 9.81
+    l1 = a1+b1
+    l2 = a2+b2
+    L = a1+b1+a2+b2
+    phi = 0.05
 
-    # dynamics
-    H22 = (mh + m)*(l**2) + m*a**2
-    H12 = -m*l*b*np.cos(x2 - x1)
-    H11 = m*b**2
-    h = -m*l*b*np.sin(x1-x2)
-    G2 = -(mh*l + m*a + m*l)*g*np.sin(x2)
-    G1 = m*b*g*np.sin(x1)
+    # H base matrix
+    H11 = m1*a1**2 + m2*(l1+a2)**2 +(mh+m1+m2)*L**2
+    H12 = -(m2*b2*L + m1*L*(l2+b1))*np.cos(x2-x1)
+    H21 = H12
+    H22 = m2*b2**2 + m1*(l2+b1)**2
 
-    K = 1 / (H11*H22 - (H12**2)) # inverse constant
-    dx1set = (H12*K*h*dx1**2) + (H22*K*h*dx2**2) - H22*K*G1 + H12*K*G2 - (H22 + H12)*K*tau
-    dx2set = (-H11*K*h*dx1**2) - (H12*K*h*dx2**2) + H12*K*G1 - H11*K*G2 + ((H12 + H11)*K*tau)
+    # B base matrix
+    B11 = 0
+    B22 = 0
+    B12 = (-m2*b2*L - m1*L*(l2+b1))*dx2*np.sin(x1-x2)
+    B21 = (m2*b2*L + m1*L*(l2+b1))*dx1*np.sin(x1-x2)
+
+    # G base matrix
+    g1 = -(mh+m1+m2)*g*L*np.sin(x1) - m1*g*a1*np.sin(x1) - m2*g*(l1+a2)*np.sin(x1)
+    g2 = (m2*b2 + m1*(l2+b1))*g*np.sin(x2)
+
+    # inverse of H matrix
+    k = 1 / (H11*H22 - H12*H21)
+    HI_11 = H22*k
+    HI_12 = -H12*k
+    HI_21 = -H21*k
+    HI_22 = H11*k
+
+    dx1set = -(HI_12*B21*dx1 + HI_11*B12*dx2) - (HI_11*g1 + HI_12*g2) # add forcing term
+    dx2set = -(HI_22*B21*dx1 + HI_21*B12*dx2) - (HI_21*g1 + HI_22*g2) # add forcing term
+
 
 
     # set rhs
