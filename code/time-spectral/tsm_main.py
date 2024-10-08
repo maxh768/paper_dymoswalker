@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.linalg import inv
-#from LCO import LCO_TS
+from TS_solver import TSM
 
-def force(mu, w, x):
+def force(w, x):
     # equation:
     # f = w_dot = A*w + B(w)
     #A = -Hinv*B
@@ -11,11 +11,7 @@ def force(mu, w, x):
     #w = [theta1; theta2; theta1_dot; theta2_dot]
     #w_dot = [theta1_dot; theta2_dot; theta1_dotdot; theta2_dotdot]
 
-
-
-
     # define x as [a,b]
-    # mu = ?
 
     # set params
     a = x[0]
@@ -78,38 +74,25 @@ def force(mu, w, x):
 
     f = np.zeros(4)
     f[:] += A.dot(w) + C[:]
-    print(f)
+    #print(f)
     
     # return total forcing term
     return f
 
-#w = [0.3, 0.5, 0.7, 0.9]
-#x = [0.5, 0.5]
-#force(0,w,x)
 
-"""
-TSM parameters
-"""
-ntimeinstance = 5
-ndof = 4
-mag_0 = 3
-pha_0 = 0.2
-mag_array = np.linspace(1, 13, 13)  # True curve sampling pts
-x = [0.5, 0.5]
+# set up parameters for TSM
+n = 5
+Ndof = 4
+x = [.5, .5]
 
-mag_list = [mag_0*0.8, mag_0, mag_0*1.2]
+# create TSM object
+compass = TSM(force, n, Ndof, x=x)
+xin = compass.generate_xin()
+print(xin)
+sol = compass.solve(xin)
+print(sol)
 
-oscillator_list = []
-mu_list = []
 
-for i in range(3):
-    mag = mag_list[i]
-
-    oscillator = LCO_TS(
-    force, ntimeinstance, ndof, x
-    )
-
-    oscillator.set_motion_mag_pha(mag, pha_0)
 
     
 
