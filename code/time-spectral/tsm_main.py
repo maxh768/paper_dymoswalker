@@ -81,16 +81,59 @@ def force(w, x):
 
 
 # set up parameters for TSM
-n = 5
+n = 10
 Ndof = 4
 x = [.5, .5]
+T = 1.5
 
 # create TSM object
-compass = TSM(force, n, Ndof, x=x)
+compass = TSM(force, n, Ndof,T, x=x)
 xin = compass.generate_xin()
 print(xin)
 sol = compass.solve(xin)
 print(sol)
+
+# data management and plot
+x1arr = np.zeros(n)
+x2arr = np.zeros(n)
+x3arr = np.zeros(n)
+x4arr = np.zeros(n)
+
+for i in range(n):
+    cx1 = sol[i*Ndof]
+    x1arr[i] = cx1
+
+    cx2 = sol[i*Ndof+ 1]
+    x2arr[i] = cx2
+
+    cx3 = sol[i*Ndof + 2]
+    x3arr[i] = cx3
+
+    cx4 = sol[i*Ndof + 3]
+    x4arr[i] = cx4
+
+import matplotlib.pyplot as plt
+import matplotlib as matplotlib
+import niceplots
+
+#plt.style.use(niceplots.get_style())
+
+my_blue = '#4C72B0'
+my_red = '#C54E52'
+my_green = '#56A968'
+my_brown = '#b4943e'
+
+#upper link of one leg
+fig, ax = plt.subplots()
+ax.plot(x1arr, x3arr, linewidth=1.0, label='swing')
+ax.plot(x2arr, x4arr, linewidth=1.0, label='stance')
+ax.set_title('Limit Cycle With Time Spectral Method')
+ax.set_xlabel('angle')
+ax.set_ylabel('angular velocity')
+ax.legend()
+dir = './research_template/time_spectral_images/'
+plt.savefig(dir+'TS')
+
 
 
 

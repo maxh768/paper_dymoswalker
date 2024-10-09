@@ -9,13 +9,15 @@ class TSM(object):
     force,
     n,
     Ndof,
+    T,
     x=None
     ):
         self.force = force
         self.n = n
         self.Ndof = Ndof
         self.w = np.zeros(n*Ndof)
-        self.omega = 3 # dummy for now
+        self.T = T
+        self.omega = 2*np.pi/T # dummy for now
         if x is None:
             x = [0.5, 0.5]
         else:
@@ -108,20 +110,16 @@ class TSM(object):
 
 
         w0 = np.zeros(n * Ndof)
-        # for i in range(ntimeinstance * ndof):
-        #     if (i % ndof == 0):
-        #         # Only specify the first DOF
-        #         w0[i] = mag * np.sin(float(i // ndof) \
-        #             / float(ntimeinstance) * 2.0 * np.pi + pha)
-        #     if (i % ndof == 2):
-        #         # Only specify the first DOF
-        #         w0[i] = omega * mag * np.cos(float(i // ndof) \
-        #             / float(ntimeinstance) * 2.0 * np.pi + pha)
-        for i in range(n* Ndof):
-            w0[i] = 2* np.sin(float(i) / float(n * Ndof) * 2.0 * np.pi)
-
         xin = np.zeros(n * Ndof )
-        xin[:] = w0[:]
+
+        states_init = [-0.3, 0.2038, -0.41215, -1.0501]
+        xin[0:4] = states_init[:]
+        
+        for i in range(n* Ndof):
+            w0[i] = 4* np.sin(float(i) / float(n * Ndof) * 2.0 * np.pi)
+
+
+        xin[4:] = w0[4:]
         #print(xin)
 
         return xin
