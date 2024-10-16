@@ -1,10 +1,13 @@
 import gymnasium as gym
 import numpy as np
+import mujoco
 env = gym.make("InvertedPendulum-v5", render_mode='human')
 observation, info = env.reset()
 #print(observation[0])
 env.unwrapped.state  = [3,-1,0,0]
-print(env.unwrapped.data.qM)
+#print(env.unwrapped.data.qM)
+mujoco.mj_step()
+
 #mb = env.unwrapped.model.geom_size
 #print('Copy of parameter: ', mb)
 #mb[2,0] = .35
