@@ -10,6 +10,7 @@ class TSM(object):
     n,
     Ndof,
     T,
+    phi = 0.05,
     x=None
     ):
         self.force = force
@@ -18,6 +19,7 @@ class TSM(object):
         self.w = np.zeros(n*Ndof)
         self.T = T
         self.omega = 2*np.pi/T # dummy for now
+        self.phi_constraint = -2*phi
         if x is None:
             x = [0.5, 0.5]
         else:
@@ -36,12 +38,59 @@ class TSM(object):
         self.w[:] = u
 
 
+
     # set up residual
     def compute_Rdyn(self):
+        #print('----NEW RES----')
         w = self.w
         force = self.force
         n = self.n
         Ndof = self.Ndof
+        phibound = np.zeros(2)
+        
+
+        """# find point where heel-strike occurs (compass gait specific)
+        not working
+        plan:
+        1. run time spectral method with system without collision from initial point
+        2. find where collision point is from converged solution (may need linear interpolation
+        due to lack of small timestep)
+        3. run time spectral method starting from collision states
+
+        4. repeat for x # of cycles
+        print(w)
+        from calc_transition import calc_trans
+        for j in range(n-1):
+            w1_prev = w[j*Ndof]
+            w2_prev = w[j*Ndof + 1]
+            w3_prev = w[j*Ndof + 2]
+            w4_prev = w[j*Ndof + 3]
+
+            w1_cur = w[j*Ndof + 4]
+            w2_cur = w[j*Ndof + 4 + 1]
+            w3_cur = w[j*Ndof + 4 + 2]
+            w4_cur = w[j*Ndof + 4 + 3]
+
+
+            phibound[0] = w1_prev + w2_prev
+            phibound[1] = w1_cur + w2_cur
+            #print(phibound)
+            #print('w1 prev: ',w1_prev_cur)
+            #print('w1 current: ', w1_cur)
+            if ((((phibound[0] > self.phi_constraint) and (phibound[1] < self.phi_constraint)) or ((phibound[0] < self.phi_constraint) and (phibound[1] > self.phi_constraint)))):
+                print('----TRANSITION----')
+                print([w1_cur, w2_cur, w3_cur, w4_cur])
+                newstates = calc_trans(w1_cur,w2_cur,w3_cur,w4_cur)
+                w[j*Ndof] = newstates[0]
+                w[j*Ndof + 1] = newstates[1]
+                w[j*Ndof + 2] = newstates[2]
+                w[j*Ndof + 3] = newstates[3]
+                break
+
+        
+        self.w[:] = w"""
+
+
 
         wdot = self.compute_dwdt()
 
@@ -53,6 +102,9 @@ class TSM(object):
             Rdyn[i * Ndof : (i + 1) * Ndof] = -force(w_loc, self.x)[:]
 
         Rdyn[:] += wdot[:]
+
+            
+
         #print(Rdyn)
         return Rdyn
 
@@ -116,7 +168,7 @@ class TSM(object):
         xin[0:4] = states_init[:]
         
         for i in range(n* Ndof):
-            w0[i] = 4* np.sin(float(i) / float(n * Ndof) * 2.0 * np.pi)
+            w0[i] = 0.3* np.sin(float(i) / float(n * Ndof) * 2.0 * np.pi)
 
 
         xin[4:] = w0[4:]
@@ -130,6 +182,8 @@ class TSM(object):
         #Rdyn = self.compute_Rdyn
         #print(Rdyn)
         sol = optimize.newton_krylov(self.res_wrapper, xin, f_tol=tol)
+        #print(self.w)
+        #print(sol)
 
         self.w[:] = sol[:]
 

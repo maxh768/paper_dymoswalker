@@ -18,7 +18,6 @@ def force(w, x):
     b = x[1]
     mh = 10
     m = 5
-    phi = 0.05
     l = a + b
     g = 9.81
 
@@ -40,7 +39,6 @@ def force(w, x):
     H[0,1] = H12
     H[1,0] = H21
     H[1,1] = H22
-    #print(H)
     Hinv = inv(H)
 
     B = np.zeros((2,2))
@@ -58,8 +56,7 @@ def force(w, x):
     A[3,2] = A_im[1,0]
     A[3,3] = A_im[1,1]
     
-    #print(A_im)
-    #print(A)
+
 
     #force from gravity matrix (C):
     G = np.zeros(2)
@@ -70,28 +67,66 @@ def force(w, x):
     C = np.zeros(4)
     C[2] = C_int[0]
     C[3] = C_int[1]
-    #print(C)
+
 
     f = np.zeros(4)
     f[:] += A.dot(w) + C[:]
-    #print(f)
     
     # return total forcing term
     return f
 
 
 # set up parameters for TSM
-n = 10
+n = 30
 Ndof = 4
 x = [.5, .5]
-T = 1.5
+T = 0.25
 
-# create TSM object
-compass = TSM(force, n, Ndof,T, x=x)
-xin = compass.generate_xin()
-print(xin)
-sol = compass.solve(xin)
+phi = 0.05 # set ramp angle
+phi_constraint = -2*phi
+
+# create TSM object for pre collision
+compass_precol = TSM(force, n, Ndof,T, x=x,phi=phi)
+xin = compass_precol.generate_xin()
+sol = compass_precol.solve(xin)
 print(sol)
+
+# find collision point
+phibound = np.zeros(2)
+from calc_transition import calc_trans
+for j in range(n-1):
+    w1_prev = sol[j*Ndof]
+    w2_prev = sol[j*Ndof + 1]
+    w3_prev = sol[j*Ndof + 2]
+    w4_prev = sol[j*Ndof + 3]
+
+    w1_cur = sol[j*Ndof + 4]
+    w2_cur = sol[j*Ndof + 4 + 1]
+    w3_cur = sol[j*Ndof + 4 + 2]
+    w4_cur = sol[j*Ndof + 4 + 3]
+
+
+    phibound[0] = w1_prev + w2_prev
+    phibound[1] = w1_cur + w2_cur
+    #print(phibound)
+    #print('w1 prev: ',w1_prev_cur)
+    #print('w1 current: ', w1_cur)
+    if ((((phibound[0] > phi_constraint) and (phibound[1] < phi_constraint)) or ((phibound[0] < phi_constraint) and (phibound[1] > phi_constraint)))) and (j>2):
+        print('----TRANSITION----')
+        print([w1_cur, w2_cur, w3_cur, w4_cur])
+        newstates = calc_trans(w1_cur,w2_cur,w3_cur,w4_cur)
+        print(newstates)
+"""
+# create object for 2nd run of TSM
+compass_postcol = TSM(force, n, Ndof,T, x=x,phi=phi)
+xin[0:4] = newstates[:]
+#print(xin)
+sol = compass_postcol.solve(xin)
+#print(sol)
+"""
+
+
+
 
 # data management and plot
 x1arr = np.zeros(n)
@@ -114,7 +149,7 @@ for i in range(n):
 
 import matplotlib.pyplot as plt
 import matplotlib as matplotlib
-import niceplots
+#import niceplots
 
 #plt.style.use(niceplots.get_style())
 
