@@ -32,42 +32,20 @@ mujoco.mjv_updateScene(
     model, data, mujoco.MjvOption(), mujoco.MjvPerturb(),
     camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
 
-Kp = 5
-Kd = 100
-data.qpos = np.array([-1, np.deg2rad(3)])
+from pid_control import PD,Controller
+controller = Controller()
 
-dummy_state = np.zeros((1,4))
+data.qpos = np.array([-0.1, np.deg2rad(5)])
 
-sensor_states = np.zeros((1,4))
-sensor_states[0,:] = (data.sensordata)
-
-real_states = np.zeros((1,4))
-real_states[0,:] = np.block([[data.qpos, data.qvel]])
-
-time = np.zeros((1,1))
-time[0,0] = data.time
-dummy_time = np.zeros((1,1))
-
-target_x = 0
-target_theta = np.deg2rad(0)
 
 
 while(not glfw.window_should_close(window)):
     mujoco.mj_step1(model, data)
 
-    data.ctrl = np.zeros(1) + Kd*(np.zeros(1) + data.qvel[1]) + Kp*(target_theta + data.qpos[1])
-    # data.ctrl = np.zeros(2) + Kd*(np.zeros(2) - data.sensordata[2:3]) + Kp*(np.zeros(2) - data.sensordata[:2])
+    data.ctrl = -controller.observe(data.qpos[0],data.qpos[1])
+    
     print(data.ctrl)
     mujoco.mj_step2(model, data)
-
-    dummy_state[0,:] = (data.sensordata)
-    sensor_states = np.append(sensor_states, dummy_state, axis=0)
-    
-    dummy_state[0,:] = np.block([[data.qpos, data.qvel]])
-    real_states = np.append(real_states, dummy_state, axis=0)
-    
-    dummy_time[0,0] = data.time
-    time = np.append(time, dummy_time, axis=0)
 
     mujoco.mjv_updateScene(
         model, data, mujoco.MjvOption(), None,
@@ -79,10 +57,3 @@ while(not glfw.window_should_close(window)):
 
 glfw.terminate()
 
-plt.plot(time[:,0], sensor_states[:,1], color='b', label='sensor')
-plt.plot(time[:,0], real_states[:,1], color='r', label='real')
-plt.xlabel("Time")
-plt.ylabel("Magnitude")
-plt.title("Sine and Cosine functions")
-plt.legend()
-plt.show()

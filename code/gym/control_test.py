@@ -3,6 +3,8 @@ import osqp
 import mujoco
 import glfw
 import numpy as np
+
+# set up mujoco rendering and load model
 np.set_printoptions(precision=4)
 
 def init_window(max_width, max_height):
@@ -31,9 +33,13 @@ mujoco.mjv_updateScene(
     model, data, mujoco.MjvOption(), mujoco.MjvPerturb(),
     camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
 
+
+# set initial state
 data.qpos = np.array([np.deg2rad(45), np.deg2rad(45)])
 mujoco.mj_forward(model, data)
 
+
+# add tracking point
 EndEffector = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "hinge")
 site_pos = data.site_xpos[EndEffector]
 ref = np.array([0, 0])
@@ -74,6 +80,10 @@ while(not glfw.window_should_close(window)):
     mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector)
     Bias = data.qfrc_bias
     f = data.qfrc_constraint
+    tau = data.qfrc_actuator
+    print(data.ctrl)
+    print(tau)
+    #print(f)
 
 
 
@@ -95,7 +105,7 @@ while(not glfw.window_should_close(window)):
     except:
         pass
     #print(res.x)
-    data.ctrl = res.x[2]
+    data.ctrl = res.x[1]
 
     mujoco.mj_step2(model, data)
 
