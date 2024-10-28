@@ -3,8 +3,6 @@ import osqp
 import mujoco
 import glfw
 import numpy as np
-
-# set up mujoco rendering and load model
 np.set_printoptions(precision=4)
 
 def init_window(max_width, max_height):
@@ -19,7 +17,7 @@ window = init_window(2400, 1800)
 width, height = glfw.get_framebuffer_size(window)
 viewport = mujoco.MjrRect(0, 0, width, height)
 
-model = mujoco.MjModel.from_xml_path('/home/max/workspace/research_template/code/gym/inverted_pendulum.xml')
+model = mujoco.MjModel.from_xml_path('/home/max/workspace/research_template/code/gym/DoublePendulum.xml')
 data = mujoco.MjData(model)
 context = mujoco.MjrContext(model, mujoco.mjtFontScale.mjFONTSCALE_100)
 
@@ -33,27 +31,21 @@ mujoco.mjv_updateScene(
     model, data, mujoco.MjvOption(), mujoco.MjvPerturb(),
     camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
 
-
-# set initial state
 data.qpos = np.array([np.deg2rad(45), np.deg2rad(45)])
 mujoco.mj_forward(model, data)
 
-
-# add tracking point
-EndEffector = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "hinge")
+EndEffector = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "EndEffector")
 site_pos = data.site_xpos[EndEffector]
-ref = np.array([0, 0])
+ref = np.array([0, 1])
 d_ref = np.zeros(2)
 dd_ref = np.zeros(2)
 gear_ratio = model.actuator_gear
 gear_ratio = gear_ratio[:,0]
 ctrl_range = model.actuator_ctrlrange[:,1]
 indices = np.array([0,2])
-st_jacp = np.zeros((3,2)) # translation jacobian
-st_jacr = np.zeros((3,2)) # rotational jacobian
-print(st_jacp)
+st_jacp = np.zeros((3,2))
+st_jacr = np.zeros((3,2))
 mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector);
-print(st_jacp)
 J_old = st_jacp[indices,:]
 Kp = 1000
 Kd = (np.sqrt(Kp)/2) + 60
@@ -77,15 +69,7 @@ while(not glfw.window_should_close(window)):
     b3 = dJac@data.qvel - ddy_des
 
     mujoco.mj_fullM(model, M, data.qM)
-    mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector)
     Bias = data.qfrc_bias
-    f = data.qfrc_constraint
-    tau = data.qfrc_actuator
-    print(data.ctrl)
-    print(tau)
-    #print(f)
-
-
 
     Aeq = np.block([[-B, M]])
     beq = -Bias
@@ -104,8 +88,7 @@ while(not glfw.window_should_close(window)):
         res = prob.solve()
     except:
         pass
-    #print(res.x)
-    data.ctrl = res.x[1]
+    data.ctrl = res.x[:2]
 
     mujoco.mj_step2(model, data)
 

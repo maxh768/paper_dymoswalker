@@ -44,6 +44,12 @@ set initial state
 data.qpos = np.array([0, np.deg2rad(0)])
 mujoco.mj_forward(model, data)
 
+# add end effector position
+EndEffector = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "EndEffector")
+x = data.site_xpos[EndEffector] # x, y, z position of end effector (y = 0 for 2D)
+
+# ref states
+xr = np.array([0, 0.6,])
 
 """
 set variables to hold mujoco parameters
@@ -59,6 +65,14 @@ c = np.zeros(nv) # bias force (coriolis + centrifugal + gravitational)
 M = np.zeros((nv,nv)) # inertia matrix
 J = np.zeros((nc,nv)) # uses nc, may be some issues here
 f = np.zeros(nc) # also uses nc, could cause some issues
+
+ind = np.array([0,nv]) # empty matrix to use to convert matrices to correct size
+st_jacp = np.zeros((3,nv)) # site jacobian of end effector: translational
+st_jacr = np.zeros((3,nv)) # site jacobian of end effector: rotational
+mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector) # calculate the site jacobians
+J_old = st_jacp[ind,:] # old jacobian to be used for FD
+
+I = np.identity(nv)
 
 gear_ratio = model.actuator_gear # data.qfrc_actuator = gear_ratio * data.ctrl
 gear_ratio = gear_ratio[:,0]
@@ -90,44 +104,82 @@ while(not glfw.window_should_close(window)):
     nv = model.nv # num DOF
     nc = data.nefc # num of active constraints SIZE CHANGES, may cause issues
     
-    # get muj matrices
-    mujoco.mj_fullM(model, M, data.qM) # ---> nv x nv (already size correct)
-    c = data.qfrc_bias # ---> nv (already size correct)
-    f = data.qfrc_constraint # ---> nc
-    T = data.qfrc_actuator + data.qfrc_passive + data.qfrc_applied # ---> nv (already size correct)
-    J = data.efc_J # ---> nc x nv
-    #data.ctrl = 0.2
-    q = data.qpos
-    # adjust matrix sizes to real size
-    f = f[nc:]
-    #print(f)
-    #print(J)
-    J = J[0:nc,0:nv]
-    #print(J)
-    if nc == 0:
-        Jtf = np.zeros(nv)
-    else:
-        Jtf = np.transpose(J).dot(f)
-    #print('T: ',T)
-    #print('Jtf: ', Jtf)
-    #print('c: ',c)
-    #print('Addadition: ', (T + Jtf - c))
-    checkacc = inv(M).dot((T + Jtf - c))
-    realacc = data.qacc
+    ind = np.array([0,nv])
+    x = data.site_xpos[EndEffector]
+    xz_pos = x[ind]
+    print(xz_pos)
+
+    # calculate updated jacobians and do finite difference to find dJ
+    mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector)
+    J = st_jacp[ind,:]
+    dJ = (J - J_old)/0.0005
+    J_old = J
+
+    ref = np.array([0, 0.6])
+    d_ref = np.zeros(2)
+    dd_ref = np.zeros(2)
+
+    a3 = np.block([np.zeros((2, 2)), -J])
+    ddy_des = dd_ref + 1*(d_ref-J@data.qvel) + 1*(ref-xz_pos)
+    b3 = dJ@data.qvel - ddy_des
+
+
+    # build model from matrices
+    mujoco.mj_fullM(model, M, data.qM) # calcualte full inertia matrix
+    Bias = data.qfrc_bias # bias force (c)
+
+    Aeq = np.block([[-I, M]])
+    beq = -Bias
+
+    Q = (a3.transpose()).dot(a3)
+    q = -(a3.transpose()).dot(b3)
+    P = sparse.csc_matrix(Q)
+    A = sparse.csc_matrix(Aeq)
+
+    prob = osqp.OSQP()
+    prob.setup(P, q, A, beq, beq, verbose=False)
+    try:
+        res = prob.solve()
+    except:
+        pass
+    #print(res.x[0])
+    data.ctrl = res.x[0]
+
+
+    """# setup cost and MPC parameters
+    Qeq = np.array([1, 1]) # cost coefficent for x and z position
+    R = sparse.eye(2) # may need to change size...
+    N = 1 # horizon
     
-    """I = np.identity(nv)
-    Aeq = np.block([[-I,M]])
-    beq = -c
 
-    q_pred = Aeq*q
-    print(q_pred)"""
+    # set up osqp problem
+    Q = sparse.diags(Qeq)
+    QN = Q
+    A = sparse.csc_matrix(Aeq) # A matrix
+    P = sparse.block_diag([sparse.kron(sparse.eye(N), Q), QN,
+                       sparse.kron(sparse.eye(N), R)], format='csc')
+    q = np.hstack([np.kron(np.ones(N), -Q@xr), -QN@xr, np.zeros(N*2)])
+    qsize = q.shape
+    Asize = A.shape
+    Psize = P.shape
+    beqsize = beq.shape
+    print('beqsize: ',beqsize)
+    print('qsize: ',qsize)
+    print('Asize: ',Asize)
+    print('Psize: ',Psize)
+    print(sparse.kron(sparse.eye(N), Q))"""
 
 
+    prob = osqp.OSQP()
+    prob.setup(P,q,A,beq,beq, verbose=False)
+    #try:
+    #    res = prob.solve()
+    #except:
+    #    pass
+    #print(res)
 
-
-
-
-
+    
+    
 
     """
     mj step 2: calculate forces and acceleration based on control input
