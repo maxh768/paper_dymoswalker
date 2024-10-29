@@ -107,7 +107,7 @@ while(not glfw.window_should_close(window)):
     ind = np.array([0,nv])
     x = data.site_xpos[EndEffector]
     xz_pos = x[ind]
-    print(xz_pos)
+    #print(xz_pos)
 
     # calculate updated jacobians and do finite difference to find dJ
     mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector)
@@ -115,21 +115,22 @@ while(not glfw.window_should_close(window)):
     dJ = (J - J_old)/0.0005
     J_old = J
 
-    ref = np.array([0, 0.6])
+    # desired
+    ref = np.array([0, 1])
     d_ref = np.zeros(2)
     dd_ref = np.zeros(2)
 
-    a3 = np.block([np.zeros((2, 2)), -J])
-    ddy_des = dd_ref + 1*(d_ref-J@data.qvel) + 1*(ref-xz_pos)
-    b3 = dJ@data.qvel - ddy_des
-
 
     # build model from matrices
+    a3 = np.block([np.zeros((2, 2)), -J])
+    ddy_des = dd_ref + 30*(d_ref-J@data.qvel) + 3*(ref-xz_pos)
+    b3 = dJ@data.qvel - ddy_des
     mujoco.mj_fullM(model, M, data.qM) # calcualte full inertia matrix
     Bias = data.qfrc_bias # bias force (c)
-
     Aeq = np.block([[-I, M]])
     beq = -Bias
+
+
 
     Q = (a3.transpose()).dot(a3)
     q = -(a3.transpose()).dot(b3)
@@ -145,39 +146,6 @@ while(not glfw.window_should_close(window)):
     #print(res.x[0])
     data.ctrl = res.x[0]
 
-
-    """# setup cost and MPC parameters
-    Qeq = np.array([1, 1]) # cost coefficent for x and z position
-    R = sparse.eye(2) # may need to change size...
-    N = 1 # horizon
-    
-
-    # set up osqp problem
-    Q = sparse.diags(Qeq)
-    QN = Q
-    A = sparse.csc_matrix(Aeq) # A matrix
-    P = sparse.block_diag([sparse.kron(sparse.eye(N), Q), QN,
-                       sparse.kron(sparse.eye(N), R)], format='csc')
-    q = np.hstack([np.kron(np.ones(N), -Q@xr), -QN@xr, np.zeros(N*2)])
-    qsize = q.shape
-    Asize = A.shape
-    Psize = P.shape
-    beqsize = beq.shape
-    print('beqsize: ',beqsize)
-    print('qsize: ',qsize)
-    print('Asize: ',Asize)
-    print('Psize: ',Psize)
-    print(sparse.kron(sparse.eye(N), Q))"""
-
-
-    prob = osqp.OSQP()
-    prob.setup(P,q,A,beq,beq, verbose=False)
-    #try:
-    #    res = prob.solve()
-    #except:
-    #    pass
-    #print(res)
-
     
     
 
@@ -190,9 +158,7 @@ while(not glfw.window_should_close(window)):
     #realacc = data.qacc
     #print(realacc)
 
-    """
-    Not sure: update x0 here or during control steps...
-    """
+
 
     """
     render mujoco frames

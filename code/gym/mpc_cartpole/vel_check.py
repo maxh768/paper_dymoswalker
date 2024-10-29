@@ -96,7 +96,7 @@ while(not glfw.window_should_close(window)):
     f = data.qfrc_constraint # ---> nc
     T = data.qfrc_actuator + data.qfrc_passive + data.qfrc_applied # ---> nv (already size correct)
     J = data.efc_J # ---> nc x nv
-    #data.ctrl = 0.2
+    data.ctrl = 0.2
     q = data.qpos
     # adjust matrix sizes to real size
     f = f[nc:]
@@ -108,19 +108,11 @@ while(not glfw.window_should_close(window)):
         Jtf = np.zeros(nv)
     else:
         Jtf = np.transpose(J).dot(f)
-    #print('T: ',T)
-    #print('Jtf: ', Jtf)
-    #print('c: ',c)
-    #print('Addadition: ', (T + Jtf - c))
     checkacc = inv(M).dot((T + Jtf - c))
     realacc = data.qacc
+    print('Calculated:', checkacc)
+    print('From mj: ',realacc)
     
-    """I = np.identity(nv)
-    Aeq = np.block([[-I,M]])
-    beq = -c
-
-    q_pred = Aeq*q
-    print(q_pred)"""
 
 
 

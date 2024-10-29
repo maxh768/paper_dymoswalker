@@ -31,7 +31,7 @@ mujoco.mjv_updateScene(
     model, data, mujoco.MjvOption(), mujoco.MjvPerturb(),
     camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
 
-data.qpos = np.array([np.deg2rad(45), np.deg2rad(45)])
+data.qpos = np.array([np.deg2rad(90), np.deg2rad(45)])
 mujoco.mj_forward(model, data)
 
 EndEffector = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "EndEffector")
@@ -60,19 +60,26 @@ while(not glfw.window_should_close(window)):
     xz_pos = site_pos[indices]
 
     mujoco.mj_jacSite(model, data, st_jacp, st_jacr, EndEffector)
-    Jac = st_jacp[indices,:]
+    Jac = st_jacp[indices,:]    
     dJac = (Jac - J_old)/0.0005
     J_old = Jac
 
     a3 = np.block([np.zeros((2, 2)), -Jac])
     ddy_des = dd_ref + Kd*(d_ref-Jac@data.qvel) + Kp*(ref-xz_pos)
     b3 = dJac@data.qvel - ddy_des
-
+    print(ddy_des)
     mujoco.mj_fullM(model, M, data.qM)
     Bias = data.qfrc_bias
 
     Aeq = np.block([[-B, M]])
     beq = -Bias
+    #x = np.array([xz_pos[0], xz_pos[1], data.qpos[0], data.qpos[1]])
+    x = np.array([data.qpos[0], data.qpos[1], data.ctrl[0], data.ctrl[1]])
+    y = Aeq@x
+    #print(y)
+    #print(beq)
+
+
 
     # OSQP Setup
     # https://scaron.info/blog/conversion-from-least-squares-to-quadratic-programming.html
@@ -87,8 +94,10 @@ while(not glfw.window_should_close(window)):
     try:
         res = prob.solve()
     except:
-        pass
+        pass   
     data.ctrl = res.x[:2]
+
+
 
     mujoco.mj_step2(model, data)
 
