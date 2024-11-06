@@ -97,7 +97,7 @@ for i in range(500):  # Simulate for 50 time steps
 
     print(f"Step {i}: x = {x_current}, u = {u_opt}")
 
-animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=0.5)
+animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=0.5, save_gif=True)
 
 
 
