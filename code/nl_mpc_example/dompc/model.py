@@ -28,10 +28,10 @@ def model_set(X0, h):
     #print(B)
     #print(C)
 
-    tar_theta = -np.deg2rad(180)
+    tar_theta = np.deg2rad(180)
     model.set_rhs('x', x_next)
 
-    J = 2*(_x[0]**2) + 3*(_x[1] - tar_theta)**2 + (_x[2]**2) + (_x[3]**2)
+    J = (_x[0]**2) + (_x[1] - tar_theta)**2 + (_x[2]**2) + (_x[3]**2)
     model.set_expression(expr_name='cost', expr=J)
     
 

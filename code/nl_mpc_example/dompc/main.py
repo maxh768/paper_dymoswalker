@@ -55,7 +55,7 @@ def run_onestep(x0, h, delta_t):
 
 if __name__ == '__main__':
     # set simulation parameters
-    num_steps = 50
+    num_steps = 150
     delta_t = .1
     h = delta_t
 
