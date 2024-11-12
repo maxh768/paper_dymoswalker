@@ -118,7 +118,7 @@ def traj_gen():
                   ('traj.initphase.timeseries.time','traj.initphase.timeseries.states:x4','time','q2_dot'),
                   ('traj.initphase.timeseries.time', 'traj.initphase.timeseries.parameters:mh', 'time', 'hip mass')],
                   title='Time History',p_sol=p,p_sim=sim_sol)
-    plt.savefig('compass_trajgen', bbox_inches='tight')
+    #plt.savefig('compass_trajgen', bbox_inches='tight')
 
     # add end conditions to be used with control
     x1_end = p.get_val('traj.initphase.states:x1')[-1]
@@ -150,7 +150,7 @@ def traj_gen():
     ax.set_ylabel('angular velocity')
     #ax.legend()
 
-    plt.savefig('limitcycle_trajgen')
+    #plt.savefig('limitcycle_trajgen')
 
     ## plot motion
 
@@ -305,7 +305,7 @@ def traj_opt(a=0.5, b=0.5, mh=10, m=5, states_final=[0, 0, 0, 0], states_init=[0
                   ('traj.phase.timeseries.time','traj.phase.timeseries.controls:tau','time','tau'),
                   ('traj.phase.timeseries.time', 'traj.phase.timeseries.states:cost', 'time', 'cost')],
                   title='Time History',p_sol=p2,p_sim=sim_sol)
-    plt.savefig('compassgait_lastcycle_openloop', bbox_inches='tight')
+    #plt.savefig('compassgait_lastcycle_openloop', bbox_inches='tight')
 
     return p2, sim_sol
 
@@ -397,6 +397,7 @@ if __name__ == '__main__':
     # plot limit cycle
     fig, ax = plt.subplots()
 
+    fig.suptitle(f'Limit Cycle Osciliation For {iterations+1} Cycles')
     ax.plot(x1arr, x3arr, linewidth=1.0, label='swing foot')
     ax.plot(x2arr, x4arr, linewidth=1.0, label='stance foot')
     ax.set_xlabel('angle')
@@ -411,23 +412,23 @@ if __name__ == '__main__':
     animate_compass(x1arr.reshape(num_points), x2arr.reshape(num_points), a, b, phi, name='openloop_cocontrol.gif', saveFig=True, gif_fps=40, iter=iterations+1, num_iter_points=num_sin_points)
     print(num_sin_points)
     # plot results
-    fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6)
-    fig.suptitle('States and Controls Over Entire Range')
+    fig, (ax1, ax2) = plt.subplots(2)
+    fig.suptitle(f'States and Control Cost for {iterations+1} Cycles')
     fig.tight_layout()
     ax1.plot(timearr, x1arr)
-    ax2.plot(timearr, x2arr)
-    ax3.plot(timearr, x3arr)
-    ax4.plot(timearr, x4arr)
-    ax5.plot(timearr, tauarr)
-    ax6.plot(timearr, costarr)
+    #ax2.plot(timearr, x2arr)
+    #ax3.plot(timearr, x3arr)
+    #ax4.plot(timearr, x4arr)
+    #ax5.plot(timearr, tauarr)
+    ax2.plot(timearr, costarr)
 
-    ax1.set_ylabel('x1 (rad)')
-    ax2.set_ylabel('x2 (rad)')
-    ax3.set_ylabel('x3 (rad/s)')
-    ax4.set_ylabel('x4 (rad/s)')
-    ax5.set_ylabel('tau (N*m)')
-    ax6.set_ylabel('Cost')
-    ax6.set_xlabel('time (s)')
+    ax1.set_ylabel('Swing Foot Angle')
+    #ax2.set_ylabel('x2 (rad)')
+    #ax3.set_ylabel('x3 (rad/s)')
+    #ax4.set_ylabel('x4 (rad/s)')
+    #ax5.set_ylabel('tau (N*m)')
+    ax2.set_ylabel('Cost During Cycle')
+    ax2.set_xlabel('time (s)')
     
 
     plt.savefig('total_timehistory', bbox_inches='tight')
