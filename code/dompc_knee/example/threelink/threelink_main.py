@@ -9,7 +9,7 @@ sys.path.append(rel_do_mpc_path)
 import do_mpc
 
 # set simulation parameters
-num_steps = 4000
+num_steps = 672
 delta_t = .001
 
 #import unlocked
@@ -79,13 +79,13 @@ mpc_unlocked.reset_history()
 # delete all previous results so the animation works
 import os 
 # Specify the directory containing the files to be deleted 
-directory = './results/' 
+"""directory = './results/' 
 # Get a list of all files in the directory 
 files = os.listdir(directory) 
 # Loop through the files and delete each one 
 for file in files: 
     file_path = os.path.join(directory, file) 
-    os.remove(file_path) 
+    os.remove(file_path) """
 
 
 """
@@ -99,6 +99,7 @@ x5_result = []
 x6_result = []
 time_result = []
 tau_result = []
+len_iter = []
 
 num_locked = 0
 marker = 0
@@ -107,6 +108,8 @@ kneelock = False
 stop = False
 innertime = 0
 outertime = 0
+iter = 0
+prev_len = 0
 
 from threelink_trans import kneestrike, heelstrike
 for i in range(num_steps):
@@ -176,6 +179,14 @@ for i in range(num_steps):
                 x0 = np.array([newstates[0], newstates[1], newstates[1], newstates[2], newstates[3], newstates[3]]).reshape(-1,1)
                 simulator_unlocked.x0 = x0
                 kneelock = False
+
+                
+                len_x1 = int(len(x1_result))
+                cur_len = len_x1 - prev_len
+                prev_len = cur_len
+            
+                len_iter = np.append(len_iter, cur_len)
+                iter += 1
                 #stop = True
             
             if kneelock == True:
@@ -196,6 +207,12 @@ for i in range(num_steps):
         # end inner loop
         if stop==True:
             break
+
+#iter += 1
+len_x1 = int(len(x1_result))
+final_len = len_x1 - prev_len
+len_iter = np.append(len_iter, final_len)
+
       
 
 
@@ -204,7 +221,7 @@ DATA MANAGEMENT + PLOT RESULTS
 """
 
 # directory to plot in
-threeleg_dir = './research_template/threeleg_graphs/'
+threeleg_dir = './threeleg_graphs/'
 
 
 """## SAVE RESULTS
@@ -223,16 +240,16 @@ x6_result = x[:,5]"""
 
 # animate motion of the compass gait
 from animate_threelink import animate_threelink
-animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=18, name=threeleg_dir+'threeleg.gif')
+animate_threelink(x1_result, x2_result,x3_result, a1, b1, a2, b2, phi, saveFig=True, gif_fps=18, name=threeleg_dir+'threeleg.gif', iter=iter, len_iterarr = len_iter)
 
 #import plot fns
 from plot_results import plot_timeseries, plot_gait
 
 #plot the time history of the states + controls
-plot_timeseries(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result,tau_result, time_result)
+plot_timeseries(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result,tau_result, time_result, dir=threeleg_dir)
 
 # plot limit cycle
-plot_gait(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result)
+plot_gait(x1_result, x2_result, x3_result, x4_result, x5_result, x6_result, dir=threeleg_dir)
 
 
 
