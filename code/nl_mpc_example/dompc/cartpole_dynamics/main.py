@@ -21,7 +21,7 @@ def run_onestep(x0, h, delta_t):
     estimator = do_mpc.estimator.StateFeedback(model)
     simulator = do_mpc.simulator.Simulator(model)
 
-    simulator.set_param(t_step = 0.1)
+    simulator.set_param(t_step = delta_t)
     simulator.setup()
 
     # Initial state

@@ -10,28 +10,20 @@ sys.path.append(rel_do_mpc_path)
 # Import do_mpc package:
 import do_mpc
 
-def model_set(X0, h):
-    model_type = 'discrete' # either 'discrete' or 'continuous'
+def model_set(A, B):
+    model_type = 'continuous' # either 'discrete' or 'continuous'
     model = do_mpc.model.Model(model_type)
 
-    _x = model.set_variable(var_type='_x', var_name='x', shape=(4,1))
-    _u = model.set_variable(var_type='_u', var_name='u', shape=(1,1))
+    x = model.set_variable(var_type='_x', var_name='x', shape=(4,1))
+    u = model.set_variable(var_type='_u', var_name='u', shape=(1,1))
 
-    from cartpole_sys import discretize_sys
-    theta = float(X0[1])
-    dtheta = float(X0[3])
-    A, B, C = discretize_sys(theta, dtheta, h)
+    xdot = A @ x + B @ u
+    
 
+    model.set_rhs('x', xdot)
 
-    x_next = A@_x + B@_u + C
-    #print(A)
-    #print(B)
-    #print(C)
-
-
-    model.set_rhs('x', x_next)
-
-    J = 3*(_x[0])**2 + 50*((_x[1] - np.pi)**2) + 10*(_x[2]**2) + (_x[3]**2)
+    # cost (need to change)
+    J = (x[0])**2 + 50*(x[1])**2 + (x[2])**2 + (x[3])**2 
     model.set_expression(expr_name='cost', expr=J)
     
 

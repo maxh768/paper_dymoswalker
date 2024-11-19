@@ -1,5 +1,4 @@
 from scipy import sparse
-import osqp
 import mujoco
 import glfw
 import numpy as np
@@ -22,7 +21,8 @@ window = init_window(2400, 1800)
 width, height = glfw.get_framebuffer_size(window)
 viewport = mujoco.MjrRect(0, 0, width, height)
 
-model = mujoco.MjModel.from_xml_path('/home/max/workspace/research_template/code/gym/mpc_cartpole/inverted_pendulum.xml')
+path2xml = '/home/max/workspace/research_template/code/gym/mpc_cartpole/inverted_pendulum.xml'
+model = mujoco.MjModel.from_xml_path(path2xml)
 data = mujoco.MjData(model)
 options = model.opt
 context = mujoco.MjrContext(model, mujoco.mjtFontScale.mjFONTSCALE_100)
@@ -64,11 +64,11 @@ gear_ratio = model.actuator_gear # data.qfrc_actuator = gear_ratio * data.ctrl
 gear_ratio = gear_ratio[:,0]
 
 
-"""
-setup osqp MPC problem
-"""
 
 
+x = np.zeros(4)
+dx_real = np.zeros(4)
+from linearize_system import linearize
 while(not glfw.window_should_close(window)):
 
     """
@@ -76,60 +76,32 @@ while(not glfw.window_should_close(window)):
     """
     mujoco.mj_step1(model, data)
 
-    """
-    control steps here:
-    1a. Maybe udpate x0 here, not sure if it should be before/after mjstep1
-    1. Update Model (Calculate J,M,etc from mujoco)
-    2. Solve OSQP MPC Problem
-    3 . Apply control input to model
-    """
+    A, B = linearize(model, data)
 
-    # update model
-    # get matrix sizes
-    nq = model.nq # num of position coords
-    nv = model.nv # num DOF
-    nc = data.nefc # num of active constraints SIZE CHANGES, may cause issues
-    
-    # get muj matrices
-    mujoco.mj_fullM(model, M, data.qM) # ---> nv x nv (already size correct)
-    c = data.qfrc_bias # ---> nv (already size correct)
-    f = data.qfrc_constraint # ---> nc
-    T = data.qfrc_actuator + data.qfrc_passive + data.qfrc_applied # ---> nv (already size correct)
-    J = data.efc_J # ---> nc x nv
-    data.ctrl = 0
-    q = data.qpos
-    # adjust matrix sizes to real size
-    f = f[nc:]
-    #print(f)
-    #print(J)
-    J = J[0:nc,0:nv]
-    #print(J)
-    if nc == 0:
-        Jtf = np.zeros(nv)
-    else:
-        Jtf = np.transpose(J).dot(f)
-    checkacc = inv(M).dot((T + Jtf - c))
+    x[0] = data.qpos[0]
+    x[1] = data.qpos[1]
+    x[2] = data.qvel[0]
+    x[3] = data.qvel[1]
+    u = data.ctrl
+    dx_check = A.dot(x) + B.dot(u)
 
 
-    
-    print('Calculated:', checkacc)
+    data.ctrl = 0.3
+    #print(A)
+    #print(B)
+    #print('Calcd: ', dx_check)
     
 
 
 
-
-
-
-    """
-    mj step 2: calculate forces and acceleration based on control input
-    """
     mujoco.mj_step2(model, data)
-    realacc = data.qacc
-    print('From mj: ',realacc)
+    dx_real[0] = data.qvel[0]
+    dx_real[1] = data.qvel[1]
+    dx_real[2] = data.qacc[0]
+    dx_real[3] = data.qacc[1]
+    print('Real: ', dx_real)
+    
 
-    # get calculcated acceleration to compare
-    #realacc = data.qacc
-    #print(realacc)
 
     """
     Not sure: update x0 here or during control steps...

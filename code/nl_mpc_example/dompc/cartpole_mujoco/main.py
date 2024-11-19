@@ -1,4 +1,6 @@
 import numpy as np
+import mujoco
+import glfw
 # Add do_mpc to path. This is not necessary if it was installed via pip.
 import sys
 import os
@@ -7,121 +9,124 @@ sys.path.append(rel_do_mpc_path)
 
 # Import do_mpc package:
 import do_mpc
+delta_t = .02
+
 
 # import model and controller
 from model import model_set
 from controller import control
 
-def run_onestep(x0, h, delta_t):
-    
-    #set up system and controller
-    model = model_set(x0, h)
-    mpc = control(model, delta_t)
+# initialize mujoco and renderer
+from mj_interface import mjmod_init, mjrend_init
+x0 = [0, np.deg2rad(180)]
+model, data = mjmod_init(x0)
+window, camera, scene, context, viewport = mjrend_init(model, data)
 
-    estimator = do_mpc.estimator.StateFeedback(model)
-    simulator = do_mpc.simulator.Simulator(model)
+from mj_interface import linearize
 
-    simulator.set_param(t_step = 0.1)
+# set matrices for plotting
+xarr = []
+thetaarr = []
+farr = []
+#jarr = []
+tarr = []
+yarr = []
+
+# start main loop
+x = np.zeros(4)
+step = 1
+while(not glfw.window_should_close(window)):
+
+    # mj step 1: pre control
+    mujoco.mj_step1(model, data)
+
+    # get linearized system
+    A, B = linearize(model, data)
+    #print(A)
+    #print(B)
+    # model and controller
+    dmpc_mod = model_set(A, B)
+    mpc = control(dmpc_mod, delta_t)
+
+    # estimator and simulator (need to replace with mujoco)
+    estimator = do_mpc.estimator.StateFeedback(dmpc_mod)
+    simulator = do_mpc.simulator.Simulator(dmpc_mod)
+    simulator.set_param(t_step = delta_t)
     simulator.setup()
 
+    # get current state
+    x[0] = data.qpos[0]
+    x[1] = data.qpos[1]
+    x[2] = data.qvel[0]
+    x[3] = data.qvel[1]
+
     # Initial state
-    mpc.x0 = x0
-    simulator.x0 = x0
-    estimator.x0 = x0
+    mpc.x0 = x
+    simulator.x0 = x
+    estimator.x0 = x
 
     # Use initial state to set the initial guess.
     mpc.set_initial_guess()
 
-    # preform steps
-    u0 = mpc.make_step(x0)
-    y_next = simulator.make_step(u0)
-    x0 = estimator.make_step(y_next)
-
-    curx = x0[0]
-    curtheta = x0[1]
-    curdx = x0[2]
-    curdtheta = x0[3]
-    curf = u0[0]
-    J = (curtheta - np.pi)**2
-
-    state = np.matrix([curx, curtheta, curdx, curdtheta])
-
-    return state, curf, J
+    # get control
+    u = mpc.make_step(x)
+    y_next = simulator.make_step(u)
+    cury = y_next[0]
 
 
+    data.ctrl = u
+    curf = u
+    curt = delta_t*step
 
 
+    # mj step2: run with ctrl input
+    mujoco.mj_step2(model, data)
 
-if __name__ == '__main__':
-    # set simulation parameters
-    num_steps = 160
-    delta_t = .1
-    h = delta_t
+    curx = data.qpos[0]
+    curtheta = data.qpos[1]
 
-    # initial condition
-    x0 = 0
-    theta0 = np.deg2rad(0)
-    dx0 = 0
-    dtheta0 = np.deg2rad(0)
-    X0 = np.matrix([[x0], [theta0], [dx0], [dtheta0]])
+    # append arrays
+    xarr = np.append(xarr, curx)
+    thetaarr = np.append(thetaarr, curtheta)
+    farr = np.append(farr, curf)
+    tarr = np.append(tarr, curt)
+    yarr = np.append(yarr, cury)
 
-    # set matrices
-    xarr = []
-    thetaarr = []
-    farr = []
-    jarr = []
-    tarr = []
+    step += 1
+    # render frames
+    mujoco.mjv_updateScene(
+        model, data, mujoco.MjvOption(), None,
+        camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
+    mujoco.mjr_render(viewport, scene, context)
 
-    for k in range(num_steps):
-        state, f, J = run_onestep(X0, h, delta_t)
-        curx = state[0]
-        curtheta = state[1]
-        cur_t = delta_t*k
-        print(k)
-        
-        #if k % 5 == 0:
-        xarr = np.append(xarr, curx)
-        thetaarr = np.append(thetaarr, curtheta)
-        farr = np.append(farr, f)
-        jarr = np.append(jarr, J)
-        tarr = np.append(tarr, cur_t)
-        
+    glfw.swap_buffers(window)
+    glfw.poll_events()
 
-        X0 = state
+# close window
+glfw.terminate()
 
 
-    import matplotlib.pyplot as plt
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
-    fig.suptitle('States and Controls Over Entire Range')
-    fig.tight_layout()
+# plotting
+import matplotlib.pyplot as plt
+fig, (ax1, ax2, ax3) = plt.subplots(3)
+fig.suptitle('States and Controls Over Entire Range')
+fig.tight_layout()
 
-    # position states
-    ax1.plot(tarr, xarr, label='X')
-    ax2.plot(tarr, thetaarr)
-    ax3.plot(tarr, farr)
-    ax4.plot(tarr, jarr)
-    
-    ax1.set_ylabel('X')
-    ax2.set_ylabel('Theta')
-    ax3.set_ylabel('F')
-    ax4.set_ylabel('Cost')
+# position states
+ax1.plot(tarr, xarr, label='X')
+ax2.plot(tarr, yarr)
+ax3.plot(tarr, farr)
+#ax4.plot(tarr, jarr)
 
-    ax3.set_xlabel('Time')
-    plt.savefig('cartpole_ts', bbox_inches='tight')
+ax1.set_ylabel('X')
+ax2.set_ylabel('mpc X')
+ax3.set_ylabel('F')
+#ax4.set_ylabel('Cost')
 
+ax3.set_xlabel('Time')
+plt.savefig('cartpole_mjpc_times', bbox_inches='tight')
 
-
-    """from matplotlib import rcParams
-    rcParams['axes.grid'] = True
-    rcParams['font.size'] = 18
-
-    import matplotlib.pyplot as plt
-    fig, ax, graphics = do_mpc.graphics.default_plot(mpc.data, figsize=(16,9))
-    graphics.plot_results()
-    graphics.reset_axes()
-    plt.show()"""
-
-
-
-
+thetaarr = thetaarr - np.pi
+from animate_cartpole import animate_cartpole
+animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=1, save_gif=True, name='cartpole_mjpc.gif')
 
