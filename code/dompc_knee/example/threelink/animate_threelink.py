@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import animation
 
-def animate_threelink(x1, x2, x3, a1, b1, a2, b2, phi, name='compass.gif', interval = 20, saveFig=False, gif_fps=20):
+def animate_threelink(x1, x2, x3, a1, b1, a2, b2, phi, name='compass.gif', interval = 20, saveFig=False, gif_fps=20, iter=1, len_iterarr = []):
     ls = a1 + b1
     lt = a2 + b2
     l = ls + lt
@@ -29,8 +29,50 @@ def animate_threelink(x1, x2, x3, a1, b1, a2, b2, phi, name='compass.gif', inter
     x_swing = x_knee + x_knee2swing
     y_swing = y_knee + y_knee2swing
 
-    """ANIMATE"""
 
+    print(iter)
+    print(len_iterarr)
+    if(iter > 1):
+        total_points = int(np.sum(len_iterarr))
+        print('total points :', total_points)
+        base_x = np.zeros(total_points)
+        base_y = np.zeros(total_points)
+        for i in range(iter):
+            cur_len = int(len_iterarr[i])
+            index_prev = int(sum(len_iterarr[:i]))
+            index_next = index_prev + cur_len
+            print('index prev:', index_prev)
+            print('index next:', index_next)
+
+            x_hip[index_prev:index_next] = -l*np.sin(x1[index_prev:index_next]) + base_x[index_prev:index_next] 
+            y_hip[index_prev:index_next] = l*np.cos(x1[index_prev:index_next]) + base_y[index_prev:index_next]
+
+            x_hip2knee[index_prev:index_next] = lt*np.sin(x2[index_prev:index_next])
+            y_hip2knee[index_prev:index_next] = -lt*np.cos(x2[index_prev:index_next])
+
+            x_knee[index_prev:index_next] = x_hip[index_prev:index_next]+x_hip2knee[index_prev:index_next]
+            y_knee[index_prev:index_next] = y_hip[index_prev:index_next]+y_hip2knee[index_prev:index_next]
+
+            x_knee2swing[index_prev:index_next] = ls*np.sin(x3[index_prev:index_next])
+            y_knee2swing[index_prev:index_next] = -ls*np.cos(x3[index_prev:index_next])
+
+            x_swing[index_prev:index_next] = x_knee[index_prev:index_next] + x_knee2swing[index_prev:index_next]
+            y_swing[index_prev:index_next] = y_knee[index_prev:index_next] + y_knee2swing[index_prev:index_next]
+
+
+            if i == iter-1:
+                next_len = int(len_iterarr[iter-1])
+            else:
+                next_len = int(len_iterarr[i+1])
+            base_x[index_next:(index_next+next_len)] = x_swing[index_next-1]
+            base_y[index_next:(index_next+next_len)] = y_swing[index_next-1] 
+
+
+            
+
+
+    """ANIMATE"""
+    print('xhip: ', len(x_hip))
     fig, ax = plt.subplots()
     def init():
 
@@ -44,12 +86,17 @@ def animate_threelink(x1, x2, x3, a1, b1, a2, b2, phi, name='compass.gif', inter
         ax.set_axis_off()
         plt.axis('off')
         #plot slanted floor from initial swing leg pos to final swing leg pos
+        #plot slanted floor from initial swing leg pos to final swing leg pos
         ax.plot([0, 0], [0, 0], 'k')
-        #ax.plot([0, 0.8*iter*0.9], [0, -0.04*iter*0.9], 'k')
+        ax.plot([0, 0.8*iter*0.9], [0, -0.04*iter*0.9], 'k')
         ax.plot([0, 0], [0, 0], 'k')
-        ax.plot([0, -0.8*2], [0, 0.04*2], 'k')
-        stanceleg = ax.plot([0, x_hip[i]], [0, y_hip[i]], 'o-', lw=2, color='green')
+        ax.plot([0, -0.8], [0, 0.04], 'k')
 
+
+        if(iter>1):
+            stanceleg = ax.plot([base_x[i], x_hip[i]], [base_y[i], y_hip[i]], 'o-', lw=2, color='green')
+        else:
+            stanceleg = ax.plot([0, x_hip[i]], [0, y_hip[i]], 'o-', lw=2, color='green')
         #plot path of the hip
         path_stanceleg = ax.plot(x_hip[:i], y_hip[:i], '--', lw=1, color='green')
 
