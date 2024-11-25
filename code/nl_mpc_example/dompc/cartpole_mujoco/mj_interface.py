@@ -3,6 +3,12 @@ import glfw
 import numpy as np
 from numpy.linalg import inv
 import copy
+import cv2
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+
+
 
 # initialize the model
 def mjmod_init(x0):
@@ -125,3 +131,5 @@ def linearize(model, data):
             B[k,i] = (xdot[k]-xdot0[k])/pert
 
     return A,B
+
+

@@ -4,6 +4,7 @@ import glfw
 # Add do_mpc to path. This is not necessary if it was installed via pip.
 import sys
 import os
+import mujoco_viewer
 rel_do_mpc_path = os.path.join('..','..')
 sys.path.append(rel_do_mpc_path)
 
@@ -21,8 +22,7 @@ from mj_interface import mjmod_init, mjrend_init
 x0 = [0, np.deg2rad(180)]
 model, data = mjmod_init(x0)
 window, camera, scene, context, viewport = mjrend_init(model, data)
-
-frames = []    
+   
 
 from mj_interface import linearize
 
@@ -35,10 +35,33 @@ tarr = []
 yarr = []
 the_dmpc = []
 
+
 # start main loop
 x = np.zeros(4)
 step = 1
+rgb = []
+depth = []
+
+# set up recording
+import cv2
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+width, height = glfw.get_framebuffer_size(window)
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+video_writer = cv2.VideoWriter('cartpole.mp4', fourcc, 30.0, (width, height))
+
 while(not glfw.window_should_close(window)):
+
+    # record image from window and save to video:
+    glReadBuffer(GL_FRONT)
+    pixel_data = glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE)
+    # Convert pixel data to a numpy array
+    image = np.frombuffer(pixel_data, dtype=np.uint8)
+    image = image.reshape(height, width, 3)
+    # Flip the image vertically (OpenGL's origin is at the bottom left)
+    image = np.flipud(image)
+    video_writer.write(image)
 
     # mj step 1: pre control
     mujoco.mj_step1(model, data)
@@ -86,6 +109,7 @@ while(not glfw.window_should_close(window)):
     # mj step2: run with ctrl input
     mujoco.mj_step2(model, data)
 
+
     curx = data.qpos[0]
     curtheta = data.qpos[1]
 
@@ -105,35 +129,22 @@ while(not glfw.window_should_close(window)):
         camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
     mujoco.mjr_render(viewport, scene, context)
 
+
     glfw.swap_buffers(window)
     glfw.poll_events()
 
 # close window
 glfw.terminate()
+video_writer.release()
 
 
-# plotting
-import matplotlib.pyplot as plt
-fig, (ax1, ax2, ax3) = plt.subplots(3)
-fig.suptitle('States and Controls Over Entire Range')
-fig.tight_layout()
+# plot timeseries
+from plot_results import pl_ts
+pl_ts(xarr, tarr, thetaarr, the_dmpc, yarr, farr,name='cartpole_mjpc_times')
 
-# position states
-ax1.plot(tarr, xarr, label='MuJoCo')
-ax1.plot(tarr, yarr, '--',label='do-mpc')
-ax2.plot(tarr, thetaarr, label='MuJoCo')
-ax2.plot(tarr, the_dmpc, '--',label='do-mpc')
-ax3.plot(tarr, farr)
-ax1.legend()
-ax2.legend()
 
-ax1.set_ylabel('X')
-ax2.set_ylabel('Theta')
-ax3.set_ylabel('F')
 
-ax3.set_xlabel('Time')
-plt.savefig('cartpole_mjpc_times', bbox_inches='tight')
-
+# make animation
 thetaarr = thetaarr - np.pi
 from animate_cartpole import animate_cartpole
 animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=1, save_gif=True, name='cartpole_mjpc.gif')

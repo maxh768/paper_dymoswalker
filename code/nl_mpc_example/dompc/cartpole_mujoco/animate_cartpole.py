@@ -59,7 +59,7 @@ def animate_cartpole(x, theta, force, l=1, interval=20, force_scaler=0.2, save_g
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(x), interval=interval, repeat=True)
     if save_gif:
         anim.save(name, writer=animation.PillowWriter(fps=gif_fps))
-    plt.show()
+    #plt.show()
 
 
 if __name__ == '__main__':
