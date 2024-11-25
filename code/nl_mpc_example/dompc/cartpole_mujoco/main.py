@@ -22,6 +22,8 @@ x0 = [0, np.deg2rad(180)]
 model, data = mjmod_init(x0)
 window, camera, scene, context, viewport = mjrend_init(model, data)
 
+frames = []    
+
 from mj_interface import linearize
 
 # set matrices for plotting
@@ -31,6 +33,7 @@ farr = []
 #jarr = []
 tarr = []
 yarr = []
+the_dmpc = []
 
 # start main loop
 x = np.zeros(4)
@@ -72,6 +75,7 @@ while(not glfw.window_should_close(window)):
     u = mpc.make_step(x)
     y_next = simulator.make_step(u)
     cury = y_next[0]
+    curthe_dmpc = y_next[1]
 
 
     data.ctrl = u
@@ -91,9 +95,11 @@ while(not glfw.window_should_close(window)):
     farr = np.append(farr, curf)
     tarr = np.append(tarr, curt)
     yarr = np.append(yarr, cury)
+    the_dmpc = np.append(the_dmpc, curthe_dmpc)
 
     step += 1
     # render frames
+
     mujoco.mjv_updateScene(
         model, data, mujoco.MjvOption(), None,
         camera, mujoco.mjtCatBit.mjCAT_ALL, scene)
@@ -113,15 +119,17 @@ fig.suptitle('States and Controls Over Entire Range')
 fig.tight_layout()
 
 # position states
-ax1.plot(tarr, xarr, label='X')
-ax2.plot(tarr, yarr)
+ax1.plot(tarr, xarr, label='MuJoCo')
+ax1.plot(tarr, yarr, '--',label='do-mpc')
+ax2.plot(tarr, thetaarr, label='MuJoCo')
+ax2.plot(tarr, the_dmpc, '--',label='do-mpc')
 ax3.plot(tarr, farr)
-#ax4.plot(tarr, jarr)
+ax1.legend()
+ax2.legend()
 
 ax1.set_ylabel('X')
-ax2.set_ylabel('mpc X')
+ax2.set_ylabel('Theta')
 ax3.set_ylabel('F')
-#ax4.set_ylabel('Cost')
 
 ax3.set_xlabel('Time')
 plt.savefig('cartpole_mjpc_times', bbox_inches='tight')
