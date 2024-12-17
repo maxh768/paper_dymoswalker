@@ -179,4 +179,4 @@ def balance(delta_t = 0.02, plotting = False, polelen = .3):
 
 
 if __name__ == "__main__":
-    balance(polelen=0.3, plotting=True)
+    balance(polelen=0.25, plotting=True)
