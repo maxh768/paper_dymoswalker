@@ -44,7 +44,7 @@ def mjrend_init(model, data):
     scene = mujoco.MjvScene(model, 6000)
     camera = mujoco.MjvCamera()
     camera.trackbodyid = 2
-    camera.distance = 3
+    camera.distance = 8
     camera.azimuth = 90
     camera.elevation = -20
     mujoco.mjv_updateScene(
@@ -131,5 +131,10 @@ def linearize(model, data):
             B[k,i] = (xdot[k]-xdot0[k])/pert
 
     return A,B
+
+def setpolelen(model, data, leng=0.6):
+    model.geom_size[2,1] = leng
+    model.geom_pos[2,2] = leng
+    model.body_ipos[2,2] = leng
 
 

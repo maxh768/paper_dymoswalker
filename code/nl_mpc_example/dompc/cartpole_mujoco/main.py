@@ -16,7 +16,7 @@ from model import model_set
 from controller import control
 
 # import mujoco interface
-from mj_interface import mjmod_init, mjrend_init, linearize
+from mj_interface import mjmod_init, mjrend_init, linearize, setpolelen
 
 # import opengl to save results as a mp4
 import cv2
@@ -25,15 +25,17 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 # make function to do co design using finite difference
-def balance(delta_t = 0.02, plotting = False):
+def balance(delta_t = 0.02, plotting = False, polelen = .3):
 
-    
+    # set initial conditions
     x0 = [0, np.deg2rad(180)]
     model, data = mjmod_init(x0)
 
-    window, camera, scene, context, viewport = mjrend_init(model, data)
-    
+    # set pole length
+    setpolelen(model, data, polelen)
 
+    # init window
+    window, camera, scene, context, viewport = mjrend_init(model, data)
     
     # set matrices for plotting
     xarr = []
@@ -44,6 +46,7 @@ def balance(delta_t = 0.02, plotting = False):
     yarr = []
     the_dmpc = []
 
+    cost = 0 # initialize cost 
 
     # start main loop
     x = np.zeros(4)
@@ -51,13 +54,26 @@ def balance(delta_t = 0.02, plotting = False):
     rgb = []
     depth = []
 
+    xtol = .1
+    thetatol = .05 # 3 degrees
+    dxtol = 0.1
+    dthetatol = .05
+
     # set up recording
     if plotting:
         width, height = glfw.get_framebuffer_size(window)
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         video_writer = cv2.VideoWriter('cartpole.mp4', fourcc, 30.0, (width, height))
 
-    while(not glfw.window_should_close(window)):
+    stop = False
+    while(stop==False):
+        if step != 1:
+            if abs(curx) < xtol and abs(curtheta) < thetatol and abs(curdx) < dxtol and abs(curdtheta) < dthetatol:
+                stop = True
+            elif glfw.window_should_close(window):
+                stop = True
+
+
 
         if plotting:
             # record image from window and save to video:
@@ -107,6 +123,8 @@ def balance(delta_t = 0.02, plotting = False):
         cury = y_next[0]
         curthe_dmpc = y_next[1]
 
+        cost += u**2
+
 
         data.ctrl = u
         curf = u
@@ -119,6 +137,9 @@ def balance(delta_t = 0.02, plotting = False):
 
         curx = data.qpos[0]
         curtheta = data.qpos[1]
+        curdx = data.qvel[0]
+        curdtheta = data.qvel[1]
+        #print(curx, curtheta, curdx, curdtheta)
 
         # append arrays
         xarr = np.append(xarr, curx)
@@ -142,9 +163,9 @@ def balance(delta_t = 0.02, plotting = False):
 
     # close window
     glfw.terminate()
-    video_writer.release()
-
     if plotting:
+        video_writer.release()
+
         # plot timeseries
         from plot_results import pl_ts
         pl_ts(xarr, tarr, thetaarr, the_dmpc, yarr, farr,name='cartpole_mjpc_times')
@@ -153,4 +174,9 @@ def balance(delta_t = 0.02, plotting = False):
         thetaarr = thetaarr - np.pi
         from animate_cartpole import animate_cartpole
         animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=1, save_gif=True, name='cartpole_mjpc.gif')
+    tf = tarr[-1]
+    return float(cost), tf
 
+
+if __name__ == "__main__":
+    balance(polelen=0.3, plotting=True)
