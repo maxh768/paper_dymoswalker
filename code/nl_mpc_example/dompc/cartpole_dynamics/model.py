@@ -21,15 +21,16 @@ def model_set(M,m,L):
     dtheta = model.set_variable(var_type='_x', var_name='dtheta', shape=(1,1))
     u = model.set_variable(var_type='_u', var_name='u', shape=(1,1))
 
-    xdd = (-m*g*np.sin(theta)*np.cos(theta) - (u + m*L*(dtheta**2)*np.sin(theta))) / (m*np.cos(theta)**2 - (M+m))
-    thetadd = ((M+m)*g*np.sin(theta) + np.cos(theta)*(u + M*L*(dtheta**2)*np.sin(theta))) / (m*L*np.cos(theta)**2 - (M+m)*L)
+    #xdd = (-m*g*np.sin(theta)*np.cos(theta) - (u + m*L*(dtheta**2)*np.sin(theta))) / (m*np.cos(theta)**2 - (M+m))
+    xdd = (u - m*L*np.sin(theta)*(dtheta**2) + m*L*np.cos(theta)*dtheta) / (M + m)
+    thetadd = (m*L*np.cos(theta)*xdd + m*g*L*np.sin(theta)) / (m*L**2)
 
     model.set_rhs('x', dx)
     model.set_rhs('theta', dtheta)
     model.set_rhs('dtheta', thetadd)
     model.set_rhs('dx', xdd)
 
-    J = (x)**2 + 50*(theta - np.pi)**2 + (dx)**2 + (dtheta)**2
+    J = (x)**2 + 50*(theta - np.pi)**2 #+ (dx)**2 + (dtheta)**2
     model.set_expression(expr_name='cost', expr=J)
     
 

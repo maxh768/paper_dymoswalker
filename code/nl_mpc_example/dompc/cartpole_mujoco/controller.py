@@ -14,16 +14,17 @@ def control (model, delta_t):
     mpc = do_mpc.controller.MPC(model)
 
     setup_mpc = {
-    'n_robust': 0,
-    'n_horizon': 200,
-    't_step': delta_t,
-    'state_discretization': 'collocation',
-    'collocation_type': 'radau',
-    'collocation_deg': 1,
-    'collocation_ni': 1,
-    'store_full_solution':False,
-    # Use MA27 linear solver in ipopt for faster calculations:
-    #'nlpsol_opts': {'ipopt.linear_solver': 'MA27'}
+        'n_horizon': 200,
+        'n_robust': 0,
+        'open_loop': 0,
+        't_step': delta_t,
+        'state_discretization': 'collocation',
+        'collocation_type': 'radau',
+        'collocation_deg': 3,
+        'collocation_ni': 1,
+        'store_full_solution': True,
+        # Use MA27 linear solver in ipopt for faster calculations:
+        'nlpsol_opts': {'ipopt.linear_solver': 'mumps'}
     }
     mpc.settings.supress_ipopt_output()
     mpc.set_param(**setup_mpc)
@@ -34,10 +35,10 @@ def control (model, delta_t):
 
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
-    mpc.set_rterm(u=.001) # input penalty
+    mpc.set_rterm(u=0.001) # input penalty
 
-    max_x = np.array([[2.5], [200], [1000], [1000]])
-    min_x = np.array([[-2.5], [-200], [-1000], [-1000]])
+    max_x = np.array([[3.5], [200], [1000], [1000]])
+    min_x = np.array([[-3.5], [-200], [-1000], [-1000]])
 
     # lower bounds of the states
     mpc.bounds['lower','_x','x'] = min_x
@@ -46,10 +47,10 @@ def control (model, delta_t):
     mpc.bounds['upper','_x','x'] = max_x
 
     # lower bounds of the input
-    mpc.bounds['lower','_u','u'] = -40
+    mpc.bounds['lower','_u','u'] = -35
 
     # upper bounds of the input
-    mpc.bounds['upper','_u','u'] =  40
+    mpc.bounds['upper','_u','u'] =  35
 
     mpc.setup()
 

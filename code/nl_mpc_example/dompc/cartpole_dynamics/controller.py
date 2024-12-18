@@ -35,28 +35,28 @@ def control (model, delta_t):
 
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
-    mpc.set_rterm(u=0.1) # input penalty
+    mpc.set_rterm(u=0.01) # input penalty
 
-    max_x = np.array([[3.5], [200], [1000], [1000]])
-    min_x = np.array([[-3.5], [-200], [-1000], [-1000]])
+    max_x = np.array([[5], [200], [1000], [1000]])
+    min_x = np.array([[-5], [-200], [-1000], [-1000]])
 
     # lower bounds of the states
-    #mpc.bounds['lower','_x','x'] = min_x[0]
+    mpc.bounds['lower','_x','x'] = min_x[0]
     mpc.bounds['lower','_x','theta'] = min_x[1]
     mpc.bounds['lower','_x','dx'] = min_x[2]
     mpc.bounds['lower','_x','dtheta'] = min_x[3]
 
     # upper bounds of the states
-    #mpc.bounds['upper','_x','x'] = max_x[0]
+    mpc.bounds['upper','_x','x'] = max_x[0]
     mpc.bounds['upper','_x','theta'] = max_x[2]
     mpc.bounds['upper','_x','dx'] = max_x[2]
     mpc.bounds['upper','_x','dtheta'] = max_x[3]
 
     # lower bounds of the input
-    mpc.bounds['lower','_u','u'] = -50
+    mpc.bounds['lower','_u','u'] = -25
 
     # upper bounds of the input
-    mpc.bounds['upper','_u','u'] =  50
+    mpc.bounds['upper','_u','u'] =  25
 
     mpc.setup()
 

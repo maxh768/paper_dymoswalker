@@ -12,9 +12,9 @@ import do_mpc
 from model import model_set
 from controller import control
 
-m = 1
-M = 5
-L = 1
+m = 0.2
+M = 0.6
+L = 0.5
 
 num_steps = 200
 
@@ -42,21 +42,41 @@ u0 = 0
 xarr = []
 thetaarr = []
 farr = []
+tarr = []
 for i in range(num_steps):
     u0 = mpc.make_step(x0)
     x0 = simulator.make_step(u0)
     print(i)
 
     curx = float(x0[0])
-    curtheta = float(x0[1])
+    curtheta = float(x0[2])
     curf = float(u0)
+    curt = i*delta_t
 
     xarr.append(curx)
     thetaarr.append(curtheta)
     farr.append(curf)
+    tarr.append(curt)
 
 from animate_cartpole import animate_cartpole
 animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=L, save_gif=True, name='cartpole_mjpc.gif')
+
+import matplotlib.pyplot as plt
+fig, (ax1, ax2, ax3) = plt.subplots(3)
+fig.suptitle('States and Controls Over Entire Range')
+fig.tight_layout()
+
+# position states
+ax1.plot(tarr, xarr)
+ax2.plot(tarr, thetaarr)
+ax3.plot(tarr, farr)
+
+ax1.set_ylabel('X')
+ax2.set_ylabel('Theta')
+ax3.set_ylabel('F')
+
+ax3.set_xlabel('Time')
+plt.savefig('timeseries_dynamics', bbox_inches='tight')
 
 
 
