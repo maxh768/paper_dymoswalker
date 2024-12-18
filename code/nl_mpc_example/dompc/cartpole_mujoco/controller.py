@@ -34,7 +34,7 @@ def control (model, delta_t):
 
     mpc.set_objective(mterm=mterm, lterm=lterm)
 
-    mpc.set_rterm(u=2e-2) # input penalty
+    mpc.set_rterm(u=0) # input penalty
 
     max_x = np.array([[1], [100], [100], [100]])
     min_x = np.array([[-1], [-100], [-100], [-100]])
@@ -46,10 +46,10 @@ def control (model, delta_t):
     mpc.bounds['upper','_x','x'] = max_x
 
     # lower bounds of the input
-    mpc.bounds['lower','_u','u'] = -20
+    mpc.bounds['lower','_u','u'] = -30
 
     # upper bounds of the input
-    mpc.bounds['upper','_u','u'] =  20
+    mpc.bounds['upper','_u','u'] =  30
 
     mpc.setup()
 

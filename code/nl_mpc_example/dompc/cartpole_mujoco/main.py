@@ -25,14 +25,19 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 # make function to do co design using finite difference
-def balance(delta_t = 0.02, plotting = False, polelen = .3):
+def balance(delta_t = 0.02, plotting = False, cart_m = 10.5, kg_m_pole = 16.687):
 
     # set initial conditions
     x0 = [0, np.deg2rad(180)]
     model, data = mjmod_init(x0)
+ 
+    # set pole length and update mass/intertia
+    #model.body_mass[2] = polelen*kg_m_pole
+    #model.body_inertia[1,2] = (1/12)*polelen*kg_m_pole*(polelen**2)
+    #model.body_mass[1] = 4.1
 
-    # set pole length
-    setpolelen(model, data, polelen)
+    #setpolelen(model, data, polelen)
+
 
     # init window
     window, camera, scene, context, viewport = mjrend_init(model, data)
@@ -66,13 +71,16 @@ def balance(delta_t = 0.02, plotting = False, polelen = .3):
         video_writer = cv2.VideoWriter('cartpole.mp4', fourcc, 30.0, (width, height))
 
     stop = False
+    Fail = False
     while(stop==False):
         if step != 1:
-            if abs(curx) < xtol and abs(curtheta) < thetatol and abs(curdx) < dxtol and abs(curdtheta) < dthetatol:
+            if abs(curx) < xtol and abs(curtheta) < thetatol and abs(curdx) < dxtol and abs(curdtheta) < dthetatol: # if success
                 stop = True
-            elif glfw.window_should_close(window):
+            elif glfw.window_should_close(window): # if window is closed
                 stop = True
-
+            #elif abs(curdx) < dxtol and abs(curtheta) > thetatol and abs(curx) > xtol:
+               # stop = True
+               # Fail = True
 
 
         if plotting:
@@ -163,6 +171,7 @@ def balance(delta_t = 0.02, plotting = False, polelen = .3):
 
     # close window
     glfw.terminate()
+    print(float(cost))
     if plotting:
         video_writer.release()
 
@@ -175,8 +184,8 @@ def balance(delta_t = 0.02, plotting = False, polelen = .3):
         from animate_cartpole import animate_cartpole
         animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=1, save_gif=True, name='cartpole_mjpc.gif')
     tf = tarr[-1]
-    return float(cost), tf
+    return float(cost), tf, Fail
 
 
 if __name__ == "__main__":
-    balance(polelen=0.25, plotting=True)
+    balance(plotting=True)

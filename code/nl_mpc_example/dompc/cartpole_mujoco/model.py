@@ -23,7 +23,7 @@ def model_set(A, B):
     model.set_rhs('x', xdot)
 
     # cost (need to change)
-    J = (x[0])**2 + 50*(x[1])**2 + (x[2])**2 + (x[3])**2 
+    J = 0.2*(x[0])**2 + (x[1])**2 + 0.1*(x[2])**2 + 0.1*(x[3])**2 
     model.set_expression(expr_name='cost', expr=J)
     
 
