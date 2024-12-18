@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import animation
 
-def animate_cartpole(x, theta, force, l=1, interval=20, force_scaler=0.2, save_gif=False, gif_fps=20):
+def animate_cartpole(x, theta, force, l=1, interval=20, force_scaler=0.2, save_gif=False, gif_fps=20, name='cartpole.gif'):
     # x: time history of cart location, 1d vector
     # theta: time history of pole angle, 1d vector
     # force: control input force
@@ -58,8 +58,8 @@ def animate_cartpole(x, theta, force, l=1, interval=20, force_scaler=0.2, save_g
     
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(x), interval=interval, repeat=True)
     if save_gif:
-        anim.save("cartpole.gif", writer=animation.PillowWriter(fps=gif_fps))
-    plt.show()
+        anim.save(name, writer=animation.PillowWriter(fps=gif_fps))
+    #plt.show()
 
 
 if __name__ == '__main__':

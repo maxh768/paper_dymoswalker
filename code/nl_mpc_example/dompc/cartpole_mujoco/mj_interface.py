@@ -44,7 +44,7 @@ def mjrend_init(model, data):
     scene = mujoco.MjvScene(model, 6000)
     camera = mujoco.MjvCamera()
     camera.trackbodyid = 2
-    camera.distance = 8
+    camera.distance = 10
     camera.azimuth = 90
     camera.elevation = -20
     mujoco.mjv_updateScene(

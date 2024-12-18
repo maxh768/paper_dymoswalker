@@ -12,116 +12,52 @@ import do_mpc
 from model import model_set
 from controller import control
 
-def run_onestep(x0, h, delta_t):
-    
-    #set up system and controller
-    model = model_set(x0, h)
-    mpc = control(model, delta_t)
+m = 1
+M = 5
+L = 1
 
-    estimator = do_mpc.estimator.StateFeedback(model)
-    simulator = do_mpc.simulator.Simulator(model)
+num_steps = 200
 
-    simulator.set_param(t_step = delta_t)
-    simulator.setup()
+delta_t = .04
+model = model_set(M,m,L)
+mpc = control(model, delta_t)
 
-    # Initial state
-    mpc.x0 = x0
-    simulator.x0 = x0
-    estimator.x0 = x0
+# estimator and simulator (need to replace with mujoco)
+estimator = do_mpc.estimator.StateFeedback(model)
+simulator = do_mpc.simulator.Simulator(model)
+simulator.set_param(t_step = delta_t)
+simulator.setup()
 
-    # Use initial state to set the initial guess.
-    mpc.set_initial_guess()
+x0 = np.array([0, 0, 0, 0])
+# Initial state
+mpc.x0 = x0
+simulator.x0 = x0
+estimator.x0 = x0
 
-    # preform steps
+# Use initial state to set the initial guess.
+mpc.set_initial_guess()
+u0 = 0
+
+# control   
+xarr = []
+thetaarr = []
+farr = []
+for i in range(num_steps):
     u0 = mpc.make_step(x0)
-    y_next = simulator.make_step(u0)
-    x0 = estimator.make_step(y_next)
+    x0 = simulator.make_step(u0)
+    print(i)
 
-    curx = x0[0]
-    curtheta = x0[1]
-    curdx = x0[2]
-    curdtheta = x0[3]
-    curf = u0[0]
-    J = (curtheta - np.pi)**2
+    curx = float(x0[0])
+    curtheta = float(x0[1])
+    curf = float(u0)
 
-    state = np.matrix([curx, curtheta, curdx, curdtheta])
+    xarr.append(curx)
+    thetaarr.append(curtheta)
+    farr.append(curf)
 
-    return state, curf, J
+from animate_cartpole import animate_cartpole
+animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=L, save_gif=True, name='cartpole_mjpc.gif')
 
-
-
-
-
-if __name__ == '__main__':
-    # set simulation parameters
-    num_steps = 160
-    delta_t = .1
-    h = delta_t
-
-    # initial condition
-    x0 = 0
-    theta0 = np.deg2rad(0)
-    dx0 = 0
-    dtheta0 = np.deg2rad(0)
-    X0 = np.matrix([[x0], [theta0], [dx0], [dtheta0]])
-
-    # set matrices
-    xarr = []
-    thetaarr = []
-    farr = []
-    jarr = []
-    tarr = []
-
-    for k in range(num_steps):
-        state, f, J = run_onestep(X0, h, delta_t)
-        curx = state[0]
-        curtheta = state[1]
-        cur_t = delta_t*k
-        print(k)
-        
-        #if k % 5 == 0:
-        xarr = np.append(xarr, curx)
-        thetaarr = np.append(thetaarr, curtheta)
-        farr = np.append(farr, f)
-        jarr = np.append(jarr, J)
-        tarr = np.append(tarr, cur_t)
-        
-
-        X0 = state
-    
-    from animate_cartpole import animate_cartpole
-    animate_cartpole(xarr, thetaarr, farr, gif_fps=20, l=1, save_gif=True)
-
-    import matplotlib.pyplot as plt
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
-    fig.suptitle('States and Controls Over Entire Range')
-    fig.tight_layout()
-
-    # position states
-    ax1.plot(tarr, xarr, label='X')
-    ax2.plot(tarr, thetaarr)
-    ax3.plot(tarr, farr)
-    ax4.plot(tarr, jarr)
-    
-    ax1.set_ylabel('X')
-    ax2.set_ylabel('Theta')
-    ax3.set_ylabel('F')
-    ax4.set_ylabel('Cost')
-
-    ax3.set_xlabel('Time')
-    plt.savefig('cartpole_ts', bbox_inches='tight')
-
-
-
-    """from matplotlib import rcParams
-    rcParams['axes.grid'] = True
-    rcParams['font.size'] = 18
-
-    import matplotlib.pyplot as plt
-    fig, ax, graphics = do_mpc.graphics.default_plot(mpc.data, figsize=(16,9))
-    graphics.plot_results()
-    graphics.reset_axes()
-    plt.show()"""
 
 
 

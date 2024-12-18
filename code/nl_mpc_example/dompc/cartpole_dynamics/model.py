@@ -10,28 +10,26 @@ sys.path.append(rel_do_mpc_path)
 # Import do_mpc package:
 import do_mpc
 
-def model_set(X0, h):
-    model_type = 'discrete' # either 'discrete' or 'continuous'
+def model_set(M,m,L):
+    g = 9.81
+    model_type = 'continuous' # either 'discrete' or 'continuous'
     model = do_mpc.model.Model(model_type)
 
-    _x = model.set_variable(var_type='_x', var_name='x', shape=(4,1))
-    _u = model.set_variable(var_type='_u', var_name='u', shape=(1,1))
+    x = model.set_variable(var_type='_x', var_name='x', shape=(1,1))
+    dx = model.set_variable(var_type='_x', var_name='dx', shape=(1,1))
+    theta = model.set_variable(var_type='_x', var_name='theta', shape=(1,1))
+    dtheta = model.set_variable(var_type='_x', var_name='dtheta', shape=(1,1))
+    u = model.set_variable(var_type='_u', var_name='u', shape=(1,1))
 
-    from cartpole_sys import discretize_sys
-    theta = float(X0[1])
-    dtheta = float(X0[3])
-    A, B, C = discretize_sys(theta, dtheta, h)
+    xdd = (-m*g*np.sin(theta)*np.cos(theta) - (u + m*L*(dtheta**2)*np.sin(theta))) / (m*np.cos(theta)**2 - (M+m))
+    thetadd = ((M+m)*g*np.sin(theta) + np.cos(theta)*(u + M*L*(dtheta**2)*np.sin(theta))) / (m*L*np.cos(theta)**2 - (M+m)*L)
 
+    model.set_rhs('x', dx)
+    model.set_rhs('theta', dtheta)
+    model.set_rhs('dtheta', thetadd)
+    model.set_rhs('dx', xdd)
 
-    x_next = A@_x + B@_u + C
-    #print(A)
-    #print(B)
-    #print(C)
-
-
-    model.set_rhs('x', x_next)
-
-    J = 3*(_x[0])**2 + 50*((_x[1] - np.pi)**2) + 10*(_x[2]**2) + (_x[3]**2)
+    J = (x)**2 + 50*(theta - np.pi)**2 + (dx)**2 + (dtheta)**2
     model.set_expression(expr_name='cost', expr=J)
     
 

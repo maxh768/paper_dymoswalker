@@ -4,7 +4,6 @@ import glfw
 # Add do_mpc to path. This is not necessary if it was installed via pip.
 import sys
 import os
-import mujoco_viewer
 rel_do_mpc_path = os.path.join('..','..')
 sys.path.append(rel_do_mpc_path)
 
@@ -25,18 +24,18 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 # make function to do co design using finite difference
-def balance(delta_t = 0.02, plotting = False, cart_m = 10.5, kg_m_pole = 16.687):
+def balance(delta_t = 0.02, plotting = False, polelen = 0.3, kg_m_pole = 16.687):
 
     # set initial conditions
     x0 = [0, np.deg2rad(180)]
     model, data = mjmod_init(x0)
  
     # set pole length and update mass/intertia
-    #model.body_mass[2] = polelen*kg_m_pole
-    #model.body_inertia[1,2] = (1/12)*polelen*kg_m_pole*(polelen**2)
-    #model.body_mass[1] = 4.1
+    model.body_mass[2] = polelen*kg_m_pole
+    model.body_inertia[1,2] = (1/12)*polelen*kg_m_pole*(polelen**2)
+    #model.body_mass[1] = 9
 
-    #setpolelen(model, data, polelen)
+    setpolelen(model, data, polelen)
 
 
     # init window
@@ -188,4 +187,4 @@ def balance(delta_t = 0.02, plotting = False, cart_m = 10.5, kg_m_pole = 16.687)
 
 
 if __name__ == "__main__":
-    balance(plotting=True)
+    balance(polelen = 0.4,plotting=True)
