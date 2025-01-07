@@ -12,11 +12,11 @@ import do_mpc
 from model import model_set
 from controller import control
 
-m = 0.2
-M = 0.6
-L = 0.5
+m = 5
+M = 10.5
+L = 0.3
 
-num_steps = 200
+num_steps = 400
 
 delta_t = .04
 model = model_set(M,m,L)

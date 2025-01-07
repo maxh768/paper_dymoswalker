@@ -32,6 +32,7 @@ def balance(delta_t = 0.02, plotting = False, polelen = 0.3, kg_m_pole = 16.687)
  
     # set pole length and update mass/intertia
     model.body_mass[2] = polelen*kg_m_pole
+    print(model.body_mass)
     model.body_inertia[1,2] = (1/12)*polelen*kg_m_pole*(polelen**2)
     #model.body_mass[1] = 9
 
@@ -187,4 +188,4 @@ def balance(delta_t = 0.02, plotting = False, polelen = 0.3, kg_m_pole = 16.687)
 
 
 if __name__ == "__main__":
-    balance(polelen = 0.3,plotting=True)
+    balance(polelen = 0.2,plotting=True)
