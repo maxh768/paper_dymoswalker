@@ -51,6 +51,7 @@
 \usepackage[small, compact]{titlesec}
 \usepackage{xcolor}
 \usepackage{appendix}
+
 % \usepackage{geometry}
 % \geometry{
 % a4paper,
@@ -109,19 +110,19 @@ the MuJoCo [4] physics simulation engine in order to simulate the robotic system
 implementation of MPC control. This research builds off of previous work [6] which used the Dymos Optimal Control library [7] in order to preform CCD of a simple 
 two legged walking robot known as the compass gait. 
 
-This portion of research can be broken down into three phases; phase one involved using the work done in [6] and implementing MPC control on both the two legged walker 
-as well as a slightly more complicated three legged walker. The purpose of this phase was to understand how to implement MPC control on a simplified model of a robotic system.
+This portion of research can be broken down into three phases; phase one involved using the work done in [6] and implementing MPC control on a slightly 
+more complicated three link walker. The purpose of this phase was to understand how to implement MPC control on a simplified model of a robotic system.
 Phase two of this research consisted of using the knowledge of MPC control from phase one and implementing it in a more complex system using the MuJoCo physics engine.
 Phase three consists of using the MPC controlled MuJoCo system and preforming CCD on the system as well as implementing more complex algorithms used in robotics such as 
 path planning and obstacle avoidance. Phase three of this research is incomplete and is only discussed as a future work in this paper.
 
 \section{Methods}
 
-\subsection{Phase I: Compass Gait and Three Legged Walker}
+\subsection{Phase I: MPC of the Three Link Walker}
 
-Phase I consisted of building on the research done in [6] and implementing MPC control on the compass gait system as well as a slightly more complex three legged walker.
-The compass gait is a simple two legged walking robot which is able to passively walk down an incline with no control input. The three legged walker is a similar system 
-but is more realistic as it uses a knee joint to walk. The compass gait as well as three legged walker are hybrid systems, meaning they change dynamics based on the state of the system.
+Phase I consisted of building on the research done in [6] and implementing MPC control a slightly more complex three link walker.
+The compass gait is a simple two legged walking robot which is able to passively walk down an incline with no control input. The three link walker is a similar system 
+but is more realistic as it uses a knee joint to walk. The compass gait as well as three link walker are hybrid systems, meaning they change dynamics based on the state of the system.
 The compass gait is shown in Figure \ref{fig:compass_gait}; for a more detailed look at the dynamics of the compass gait, see [6].
 
 \begin{figure}[!h]
@@ -131,68 +132,26 @@ The compass gait is shown in Figure \ref{fig:compass_gait}; for a more detailed 
   \label{fig:compass_gait}
 \end{figure}
 
-The three legged walker system is shown in Figure \ref{fig:threeleg}. For a more detailed look at the dynamics of the three legged walker, see [8]. In both the three legged walker and
+The three link walker system is shown in Figure \ref{fig:threeleg}. For a more detailed look at the dynamics of the three link walker, see [8]. In both the three link walker and
 compass gait, there is a single control input applied to the hip.
-
-In order to implement MPC control on the compass gait, do-mpc was used with the optimization problem as shown in \ref{eq:twolegopt} where the states of the system ($\mb{x}$)
-are shown in \ref{eq:twolegstates}. In the objective function $x_N$ and $x_k$ represent the terminal and the current state of the system, respectively.
-$x_r$ represents the target state of the system, which is determined to be the state at which both the swing and stance legs are in contact with the ground. This state 
-is shown in Table \ref{tab:twolegterm}.
-
-\begin{equation}
-  \begin{aligned}
-  &\text{Objective: $arg min_{x_k,u_k} (x_N - x_r)^TQ_N(x_N - x_r) + \sum_{k = 0}^{N-1} (x_k - x_r)^TQ(x_k - x_r) + u_k^TRu_k $}\\
-  &\text{Subject to:}\\
-  &\text{Dynamic Equations of System}\\
-  &\text{State Constraints: $-90^{\circ} < x_1 < 90^{\circ }, -90^{\circ} < x_2 < 90^{\circ }  $}
-  \end{aligned}
-  \label{eq:twolegopt}
-\end{equation}
-
-\begin{equation}
-  \mb{x} = 
-  \begin{bmatrix}
-  \\x_{sw}\\
-  \\x_{st}\\
-  \\\dot{x}_{sw}\\
-  \\\dot{x}_{st}\\
-  \end{bmatrix}, \quad
-  \label{eq:twolegstates}
-\end{equation}
-
-\begin{table}[h]
-  \centering
-  \caption{Target states during MPC control of the compass gait.}
-  \begin{tabular}{lr}
-  \toprule
-  State & Target Value \\
-  \midrule
-  $x_{sw}$ & 0.19 \\
-  $x_{st}$ & -0.3 \\
-  \end{tabular}
-  \label{tab:twolegterm}
-\end{table}
-
 
 \begin{figure}[!h]
   \centering
   \includegraphics[width=8cm]{./figures/threeleg.png}
-  \caption{Diagram of the three legged walker model where q1, q2, and q3 are the stance, swing, and knee joint angles.}
+  \caption{Diagram of the three link walker model where q1, q2, and q3 are the stance, swing, and knee joint angles.}
   \label{fig:threeleg}
 \end{figure}
 
-The $Q_N$ and $Q$ matrices are the weighting matrices for the MPC control and are simply set to be equal to the identity matrix in this case. 
-The $R$ matrix is the weighting matrix for the control input and is set to be equal to 10 to penalize the single control input.
-
-MPC control was implemented on the three legged walker in a similar manner to the compass gait, except there were two phases considered for this system, a two link and a 
-three link phase. A diagram showing these phases is shown in Figure \ref{fig:threelegstates}. These phases were treated as seperate systems with different governing equations and 
+MPC control was implemented on the three link walker by considering two phases for this system, a two link and a 
+three link phase, where the two link phase has the same dynamics as the compass gait. A diagram showing these phases is shown in 
+Figure \ref{fig:threelegstates}. These phases were treated as seperate systems with different governing equations and 
 each phase was controlled using a seperate MPC controller. The transition between the two phases was triggered by "knee-strike", where the 
 knee joint angle became equal to the angle of the swing leg, and "heel-strike", where the swing leg comes into contact with the ground. The 
 transition between the phases were calculated using the transition equations from [8].
 \begin{figure}[!h]
   \centering
   \includegraphics[width=8cm]{./figures/threelegstates.png}
-  \caption{Diagram showing the two link and three link phases of the three legged walker.}
+  \caption{Diagram showing the two link and three link phases of the three link walker.}
   \label{fig:threelegstates}
 \end{figure}
 
@@ -222,12 +181,15 @@ shown in \ref{eq:twolinkphaseopt} where the states of the system ($x$) consist o
   \label{eq:twolinkphaseopt}
 \end{equation}
 
-Similarly to the compass gait control problem, the $Q_N$ and $Q$ matrices are the identity matrix and the $R$ matrix is set to 1 in this case.
+In the optimization problem, $x_N$ and $x_k$ represent the terminal and current states of the system and $x_r$ respresents the target states.
+$N$ is defined as the finite horizon of the MPC problem as can be thought of as how many timesteps in the future the model predicts the behavior of the system.
+the $Q_N$ and $Q$ matrices are weighting matrices for the control of each state; In this case, they are equal to the identity matrix.
+The $R$ matrix is a weighting matrix to penalize the control input and is equal to 1 (scalar for one control input).
 The target states for each phase are the states which were pre-determined to be the knee strike and heel strike states and are shown in Table \ref{tab:threelegterm}.
 
 \begin{table}[h]
   \centering
-  \caption{Target states during MPC control of the three legged walker.}
+  \caption{Target states during MPC control of the three link walker.}
   \begin{tabular}{lrr}
   \toprule
   State & Knee Strike Target & Heel Strike Target\\
@@ -241,9 +203,9 @@ The target states for each phase are the states which were pre-determined to be 
 
 \subsection{Phase II: MuJoCo MPC}
 Phase II of this research consisted of using the knowledge of MPC which was gained from phase I and applying it to a more complex system in the MuJoCo physics engine which can 
-simulate complicated robotic systems such as the humanoid shown in \ref{fig:humanoid}. Instead of applying MPC control to the humanoid, MPC control was first applied to a simpler system 
+simulate complicated robotic systems such as the humanoid shown in Figure \ref{fig:humanoid}. Instead of applying MPC control to the humanoid, MPC control was first applied to a simpler system 
 in a way which can be easily scaled up to the humanoid. The chosen system was the classic cart pole control problem, where a pole with a 
-mass attatched to the end is attatched to a cart which can move back and forth in one direction. This is shown in \ref{fig:cartpole}. The goal of this problem is to 
+mass attatched to the end is attatched to a cart which can move back and forth in one direction. This is shown in Figure \ref{fig:cartpole}. The goal of this problem is to 
 control the pole to balance upright on the cart when the cart is at a stationary set location. This is done by applying a force to the cart to move it in the positive or 
 negative x direction.
 
@@ -345,7 +307,129 @@ This caused computational inefficency and will be addressed in future research.
 
 \section{Results}
 
-\subsection{Phase I: Compass Gait and Three Legged Walker}
+\subsection{Phase I: MPC of the Three Link Walker}
+
+The three link walker was simulated using the MPC control scheme outlined in the previous section. The 
+walker was also simulated without control in order to compare the limit cycles of the simulations. The parameters used for simulation are shown in Table
+\ref{tab:walker_params} and the initial condition is shown in Table \ref{tab:walker_init}
+The gait of the passive walker as well as 
+the timeseries states are shown in Figure \ref{fig:passive_sol}. As can be seen, both the knee strike and heel strike can be seen clearly in the gait cycle.
+The knee strike occurs as a small instantanious change in angular velocity of the swing leg (the $x_2, x_5$ leg). The heel strike occurs when the system switches the swing legs 
+and the stance legs. This can be seem as the transition from the $x_2, x_5$ graph to the $x_1, x_4$ graph.
+
+\begin{table}[h]
+  \centering
+  \caption{Parameters of the Three Link Walker Used in Simulation.}
+  \begin{tabular}{lr}
+  \toprule
+  Parameter & Knee Strike Target\\
+  \midrule
+  $a_1$ & 0.375\\
+  $b_1$ & 0.125\\
+  $a_2$ & 0.175\\
+  $b_2$ & 0.325\\
+  $m_h$ & 0.5\\
+  $m_t$ & 0.5\\
+  $m_s$ & 0.05\\
+  $\gamma$ & 0.05\\
+  \end{tabular}
+  \label{tab:walker_params}
+\end{table}
+
+\begin{table}[h]
+  \centering
+  \caption{Initial Condition of the three link walker.}
+  \begin{tabular}{lrr}
+  \toprule
+  State & Initial Condition\\
+  \midrule
+  $x_{1}$ & 0.1877 \\
+  $x_{2}$ & -0.2884\\
+  $x_{3}$ & -0.2884\\
+  $x_{4}$ & -1.1014\\
+  $x_{5}$ & -0.0399\\
+  $x_{6}$ & -0.0399\\
+  \end{tabular}
+  \label{tab:walker_init}
+\end{table}
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=.4\linewidth]{./figures/gait_passive.png} % Just stack two includegraphics!
+  \includegraphics[width=.4\linewidth]{./figures/ts_passive.png}
+  \caption{The Gait cycle and timeseries states of the passive three link walker}
+  \label{fig:passive_sol}
+  \end{figure}
+
+The MPC controlled graphs for the three link walker are similarly shown in Figure \ref{fig:active_sol}. The chaotic nature of the gait cycle in the active three link walker 
+can be clearly seen. Despite the walker acheiving the goal of not falling over, there are clear stability issues with the MPC controller. This is most likely due 
+to the way the objective of control is defined. Since the target states are simply defined as predetermined states where knee strike and heel strike occur, the 
+active walker is constrained in its motion and is unable to find a stable gait cycle which passes through the specified transition points. 
+Using a different control objective such as controlling the average forward speed of the walker or doing path planning to find the optimal path the legs should take 
+would most likely cause the gait cycle of this walker to be stable.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=.4\linewidth]{./figures/three_gait.png} % Just stack two includegraphics!
+  \includegraphics[width=.4\linewidth]{./figures/timeseries_data.png}
+  \caption{The Gait cycle and timeseries states of the active three link walker}
+  \label{fig:active_sol}
+\end{figure}
+
+\subsection{MuJoCo MPC}
+The cartpole system was simulated using MPC control for both cases, using the equations of motion and MuJoCo. The parameters for the cartpole using the equations of motion are shown 
+in Table \ref{tab:cartpole_params}. The MuJoCo case used the same pole length and cart mass; however, it should be noted that the physics of the system were slightly different.
+In the MuJoCo system, the pole was treated as a solid rod of constant density, while in the equations of motion case, the pole was treated as a massless rod 
+with a point mass attatched to the top of it. This changes the dynamics of the system and should be addressed in future research.
+
+\begin{table}[h]
+  \centering
+  \caption{Parameters Used in the Cart Pole Simulation (Eqs of Motion)}
+  \begin{tabular}{lrr}
+  \toprule
+  Parameter & Value\\
+  \midrule
+  Cart mass & 0.6 \\
+  Pole mass & 0.2\\
+  Pole Length & 0.5\\
+  \end{tabular}
+  \label{tab:cartpole_params}
+\end{table}
+
+The timeseries solution of the equations of motion case is shown in Figure \ref{fig:sol_eqn}. As can be seen, the system reaches a steady state with the pole balanced 
+at the upright position and the cart at the target state. The timeseries solution of the MuJoCo case is shown in Figure \ref{fig:sol_mj}. In the MuJoCo case, it can 
+also be seen that the pole is balanced in the upright position at the end of the simulation with the cart in the target state (in the MuJoCo system, the 
+$\theta$ axis is offset by $\pi$, meaning the target and initial states are switched). It can also be seen that the MuJoCo controller uses more total force to 
+balance the cartpole and takes a longer time to reach steady state. This is most likely due to the difference in physics between the two systems and will be addressed in the future.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/timeseries_dynamics.png} % Just stack two includegraphics!
+  \caption{The timeseries solution to the cartpole problem (using equations of motion)}
+  \label{fig:sol_eqn}
+\end{figure}
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/cartpole_mj_timeseries_normlen.png} % Just stack two includegraphics!
+  \caption{The timeseries solution to the cartpole using MuJoCo}
+  \label{fig:sol_mj}
+\end{figure}
+
+In Figure \ref{fig:sol_mj} the calculated states from the MuJoCo simulation and the states from the linearized equations of motion (using 
+finite difference) are compared. As can be seen the MuJoCo states are equal to the linearized equations of motion states (do-mpc states) throughout the duration 
+of the simulation. One thing that should be considered however, is that when using MPC control, the future states of the system are predicted for a set 
+"control horizon" (70 time steps in this case). Since the system is linearized at each time step during the simulation, it is expected that the current state of the 
+system is equivelant between the MuJoCo simulation and the linearized equations of motion; however, during the control horizon it is probable that after a certain amount of time 
+when the state of the system is sufficently far from the state about which the system was linearized that the predictions become inaccurate. This means that it is possible 
+for a control horizon which is too long to cause the control to fail due to the inaccuracy in the future predictions of the model.
+
+While the MPC controller works to stabilize the MuJoCo system when the parameters are the same as the above case, it was observed 
+that if the parameters are changed too far from the original parameters the control will fail. An example of this using the parameters shown in 
+\ref{tab:fail_cartpole} is shown in Figure \ref{fig:fail_cartpole}. As can be seen, the pole position is unstable and does not balance. It is hypothesied that 
+this failure is caused by the difference in physics between the two cases, as the equations of motion case does not fail when the parameters are changed. It is also possible 
+that the inaccurate control horizon is causing this failure. This is being investigated by creating a new MuJoCo model which is exactly the same as the equations of motion case 
+and comparing the two cases again.
 
 
 \end{document}
