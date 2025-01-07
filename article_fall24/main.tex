@@ -93,14 +93,259 @@
 \bibliographystyle{ieeetr}
 \begin{abstract}
 
+fdas
+
 \end{abstract}
 
 \section{Introduction}
 
-\Section{}
+Control Co-Design (CCD) is an engineering design strategy used to optimize the design of a system with control in mind. CCD can be acheived using various control schemes, 
+including open loop control [1], PID control, and other optimal control methods such as LQR or MPC Control. CCD has a very wide range of applications such as in 
+aerospace systems [2] and in thermal energy storage [3]. While CCD has been used in various industries there has yet to be a compreherensive tool developed
+to preform robust CCD using differentiable optimal control strategies such as nonlinear MPC control.
+
+This research focuses on developing a tool which can be used in order to preform robust CCD using MPC control. This research is primarly focused on robotic applications and uses 
+the MuJoCo [4] physics simulation engine in order to simulate the robotic systems. In this paper, do-mpc [5], a library for nonlinear MPC control, is used to simplify the 
+implementation of MPC control. This research builds off of previous work [6] which used the Dymos Optimal Control library [7] in order to preform CCD of a simple 
+two legged walking robot known as the compass gait. 
+
+This portion of research can be broken down into three phases; phase one involved using the work done in [6] and implementing MPC control on both the two legged walker 
+as well as a slightly more complicated three legged walker. The purpose of this phase was to understand how to implement MPC control on a simplified model of a robotic system.
+Phase two of this research consisted of using the knowledge of MPC control from phase one and implementing it in a more complex system using the MuJoCo physics engine.
+Phase three consists of using the MPC controlled MuJoCo system and preforming CCD on the system as well as implementing more complex algorithms used in robotics such as 
+path planning and obstacle avoidance. Phase three of this research is incomplete and is only discussed as a future work in this paper.
+
+\section{Methods}
+
+\subsection{Phase I: Compass Gait and Three Legged Walker}
+
+Phase I consisted of building on the research done in [6] and implementing MPC control on the compass gait system as well as a slightly more complex three legged walker.
+The compass gait is a simple two legged walking robot which is able to passively walk down an incline with no control input. The three legged walker is a similar system 
+but is more realistic as it uses a knee joint to walk. The compass gait as well as three legged walker are hybrid systems, meaning they change dynamics based on the state of the system.
+The compass gait is shown in Figure \ref{fig:compass_gait}; for a more detailed look at the dynamics of the compass gait, see [6].
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/compassgaitmodel.png}
+  \caption{Schematic of the compass gait model. Angles $\theta_{sw}$ and $\theta_{st}$ are shown as the swing leg angle and stance leg angle, respectively.}
+  \label{fig:compass_gait}
+\end{figure}
+
+The three legged walker system is shown in Figure \ref{fig:threeleg}. For a more detailed look at the dynamics of the three legged walker, see [8]. In both the three legged walker and
+compass gait, there is a single control input applied to the hip.
+
+In order to implement MPC control on the compass gait, do-mpc was used with the optimization problem as shown in \ref{eq:twolegopt} where the states of the system ($\mb{x}$)
+are shown in \ref{eq:twolegstates}. In the objective function $x_N$ and $x_k$ represent the terminal and the current state of the system, respectively.
+$x_r$ represents the target state of the system, which is determined to be the state at which both the swing and stance legs are in contact with the ground. This state 
+is shown in Table \ref{tab:twolegterm}.
+
+\begin{equation}
+  \begin{aligned}
+  &\text{Objective: $arg min_{x_k,u_k} (x_N - x_r)^TQ_N(x_N - x_r) + \sum_{k = 0}^{N-1} (x_k - x_r)^TQ(x_k - x_r) + u_k^TRu_k $}\\
+  &\text{Subject to:}\\
+  &\text{Dynamic Equations of System}\\
+  &\text{State Constraints: $-90^{\circ} < x_1 < 90^{\circ }, -90^{\circ} < x_2 < 90^{\circ }  $}
+  \end{aligned}
+  \label{eq:twolegopt}
+\end{equation}
+
+\begin{equation}
+  \mb{x} = 
+  \begin{bmatrix}
+  \\x_{sw}\\
+  \\x_{st}\\
+  \\\dot{x}_{sw}\\
+  \\\dot{x}_{st}\\
+  \end{bmatrix}, \quad
+  \label{eq:twolegstates}
+\end{equation}
+
+\begin{table}[h]
+  \centering
+  \caption{Target states during MPC control of the compass gait.}
+  \begin{tabular}{lr}
+  \toprule
+  State & Target Value \\
+  \midrule
+  $x_{sw}$ & 0.19 \\
+  $x_{st}$ & -0.3 \\
+  \end{tabular}
+  \label{tab:twolegterm}
+\end{table}
 
 
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/threeleg.png}
+  \caption{Diagram of the three legged walker model where q1, q2, and q3 are the stance, swing, and knee joint angles.}
+  \label{fig:threeleg}
+\end{figure}
 
+The $Q_N$ and $Q$ matrices are the weighting matrices for the MPC control and are simply set to be equal to the identity matrix in this case. 
+The $R$ matrix is the weighting matrix for the control input and is set to be equal to 10 to penalize the single control input.
+
+MPC control was implemented on the three legged walker in a similar manner to the compass gait, except there were two phases considered for this system, a two link and a 
+three link phase. A diagram showing these phases is shown in Figure \ref{fig:threelegstates}. These phases were treated as seperate systems with different governing equations and 
+each phase was controlled using a seperate MPC controller. The transition between the two phases was triggered by "knee-strike", where the 
+knee joint angle became equal to the angle of the swing leg, and "heel-strike", where the swing leg comes into contact with the ground. The 
+transition between the phases were calculated using the transition equations from [8].
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/threelegstates.png}
+  \caption{Diagram showing the two link and three link phases of the three legged walker.}
+  \label{fig:threelegstates}
+\end{figure}
+
+The optimization problem for the three link phase is shown in \ref{eq:threelinkphaseopt} where the states of the system ($x$) consist of 
+the stance, swing, and knee joint angles as well as the angular velocities of these joints. The optimization problem for the the two link phase is 
+shown in \ref{eq:twolinkphaseopt} where the states of the system ($x$) consist of the stance and swing leg angles as well as the angular velocities of these joints.
+
+\begin{equation}
+  \begin{aligned}
+  &\text{Objective: $arg min_{x_k,u_k} (x_N - x_r)^TQ_N(x_N - x_r) + \sum_{k = 0}^{N-1} (x_k - x_r)^TQ(x_k - x_r) + u_k^TRu_k $}\\
+  &\text{Subject to:}\\
+  &\text{Control Range: $-3 < tau < 3$}\\
+  &\text{Dynamic Equations of Three Link Phase}\\
+  &\text{State Constraints: $x_2 > x_3 $}
+  \end{aligned}
+  \label{eq:threelinkphaseopt}
+\end{equation}
+
+\begin{equation}
+  \begin{aligned}
+  &\text{Objective: $arg min_{x_k,u_k} (x_N - x_r)^TQ_N(x_N - x_r) + \sum_{k = 0}^{N-1} (x_k - x_r)^TQ(x_k - x_r) + u_k^TRu_k $}\\
+  &\text{Subject to:}\\
+  &\text{Control Range: $-3 < tau < 3$}\\
+  &\text{Dynamic Equations of Two Link Phase}\\
+  &\text{State Constraints: $x_2 = x_3, \dot{x_2} = \dot{x_3}$}
+  \end{aligned}
+  \label{eq:twolinkphaseopt}
+\end{equation}
+
+Similarly to the compass gait control problem, the $Q_N$ and $Q$ matrices are the identity matrix and the $R$ matrix is set to 1 in this case.
+The target states for each phase are the states which were pre-determined to be the knee strike and heel strike states and are shown in Table \ref{tab:threelegterm}.
+
+\begin{table}[h]
+  \centering
+  \caption{Target states during MPC control of the three legged walker.}
+  \begin{tabular}{lrr}
+  \toprule
+  State & Knee Strike Target & Heel Strike Target\\
+  \midrule
+  $x_{sw}$ & -.106  & -0.29\\
+  $x_{st}$ & 0.326 & 0.19\\
+  $x_{knee}$ & 0.326 & -0.19\\
+  \end{tabular}
+  \label{tab:threelegterm}
+\end{table}
+
+\subsection{Phase II: MuJoCo MPC}
+Phase II of this research consisted of using the knowledge of MPC which was gained from phase I and applying it to a more complex system in the MuJoCo physics engine which can 
+simulate complicated robotic systems such as the humanoid shown in \ref{fig:humanoid}. Instead of applying MPC control to the humanoid, MPC control was first applied to a simpler system 
+in a way which can be easily scaled up to the humanoid. The chosen system was the classic cart pole control problem, where a pole with a 
+mass attatched to the end is attatched to a cart which can move back and forth in one direction. This is shown in \ref{fig:cartpole}. The goal of this problem is to 
+control the pole to balance upright on the cart when the cart is at a stationary set location. This is done by applying a force to the cart to move it in the positive or 
+negative x direction.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/humanoid.png}
+  \caption{Example of a humanoid robot which can be simulated in the MuJoCo physics engine.}
+  \label{fig:humanoid} 
+\end{figure}
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=8cm]{./figures/cartpole-dynamics.png}
+  \caption{Diagram of the cart pole system.}
+  \label{fig:cartpole} 
+\end{figure}
+
+The cart pole system has previously been solved with various control techniques using the governing equations of motion for the system. The equations are derived in [9]. In this
+paper, the cart pole problem was solved using both MPC control with the equations of motion and using MPC control in MuJoCo in order to compare the results.
+The states for each cart pole problem are shown in \ref{eq:cartpolestates} and the initial and target states of this problem are shown in
+\ref{tab:init_tar_carteqn}.
+
+\begin{equation}
+  \mb{x} = 
+  \begin{bmatrix}
+  \\x\\
+  \\\theta\\
+  \\\dot{x}\\
+  \\\dot{\theta}\\
+  \end{bmatrix}, \quad
+  \label{eq:cartpolestates}
+\end{equation}
+
+\begin{table}[h]
+  \centering
+  \caption{Initial and Target States of the Cart Pole Problem.}
+  \begin{tabular}{lrr}
+  \toprule
+  State & Initial & Target\\
+  \midrule
+  $x$ & 0  & 0\\
+  $\theta$ & 0 & $\pi$ \\
+  $\dot{x}$ & 0 & 0\\
+  $\dot{\theta}$ & 0 & 0\\
+  \end{tabular}
+  \label{tab:init_tar_carteqn}
+\end{table}
+
+Both methods of solving the cart pole problem used a similar optimization problem as shown in \ref{eq:cartpoleopt}. 
+Solving the cart pole problem using the equations of motion was straight forward as the equations of motion were well known and could be easily implemented in do-mpc.
+However, solving the cart pole problem in MuJoCo required a different approach in order to obtain the equations of motion for the states as the equations of motion 
+were assumed to be unknown as they would be in the case of a humanoid robot or other complex system.
+
+\begin{equation}
+  \begin{aligned}
+  &\text{Objective: $arg min_{x_k,u_k} (x_N - x_r)^TQ_N(x_N - x_r) + \sum_{k = 0}^{N-1} (x_k - x_r)^TQ(x_k - x_r) + u_k^TRu_k $}\\
+  &\text{Subject to:}\\
+  &\text{Control Range: $-35 < F < 35$}\\
+  &\text{Equations of motion for respective method}\\
+  &\text{State Constraints: $-3.5 < x < 3.5$}
+  \end{aligned}
+  \label{eq:cartpoleopt}
+\end{equation}
+
+In order to obtain the equations of motion for the MuJoCo cart pole system, a finite difference approach was used in order to solve for the linearized equations of motion at 
+each time step in the simulation. These equations took the form of \ref{eq:mj_eqn_form}, where the A and B matrices were equal to the jacobian of the system 
+with respect to the states and 
+control, respectively.
+
+\begin{equation}
+  \dot{x} = Ax + Bu
+  \label{eq:mj_eqn_form}
+\end{equation}
+
+The A and B matrices were found using the finite difference method by first obtaining the nominal (current, found from MuJoCo simulation)
+state of the system as denoted in \ref{eq:nomstate}
+and then perturbing each state one at a time as shown in \ref{eq:pertA} (repeat for all columns of the square matrix A) where $\epsilon$
+is a small number in order to obtain the A matrix. The B matrix was 
+obtained in a similar manner by perturbing the control input as shown in \ref{eq:pertB}.
+
+\begin{equation}
+  x_{nom} = f(x^0, \theta^0, \dot{x}^0, \dot{\theta}^0, F^0)
+  \label{eq:nomstate}
+\end{equation}
+
+\begin{equation}
+  A \text{ (Column One)} =\frac{ f(x^0 + \epsilon, \theta^0, \dot{x}^0, \dot{\theta}^0, F^0) - f(x^0, \theta^0, \dot{x}^0, \dot{\theta}^0, F^0)}{\epsilon}
+  \label{eq:pertA}
+\end{equation}
+
+\begin{equation}
+  B =\frac{ f(x^0, \theta^0, \dot{x}^0, \dot{\theta}^0, F^0 + \epsilon) - f(x^0, \theta^0, \dot{x}^0, \dot{\theta}^0, F^0)}{\epsilon}
+  \label{eq:pertB}
+\end{equation}
+
+After determining the A and B matrices for the cart pole MuJoCo system, the problem could then be solved by integrating the MuJoCo engine with the do-mpc interface.
+However, since the A and B matrices were being calculated at each time step, the dompc problem needed to be re-initialzed at each time step with the updated A and B matrices.
+This caused computational inefficency and will be addressed in future research.
+
+\section{Results}
+
+\subsection{Phase I: Compass Gait and Three Legged Walker}
 
 
 \end{document}
