@@ -100,12 +100,12 @@ fdas
 
 \section{Introduction}
 
-Control Co-Design (CCD) is an engineering design strategy used to optimize the design of a system with control in mind. CCD can be acheived using various control schemes, 
+Control Co-Design (CCD) is an engineering design strategy used to optimize the design of a system with control in mind. CCD can be achieved using various control schemes, 
 including open loop control \cite{Sundarrajan2023}, PID control, and other optimal control methods such as LQR or MPC Control. CCD has a very wide range of applications such as in 
-aerospace systems \cite{Van2019} and in thermal energy storage \cite{10177617}. While CCD has been used in various industries there has yet to be a compreherensive tool developed
+aerospace systems \cite{Van2019} and in thermal energy storage \cite{10177617}. While CCD has been used in various industries there has yet to be a comprehensive tool developed
 to preform robust CCD using differentiable optimal control strategies such as nonlinear MPC control.
 
-This research focuses on developing a tool which can be used in order to preform robust CCD using MPC control. This research is primarly focused on robotic applications and uses 
+This research focuses on developing a tool which can be used in order to preform robust CCD using MPC control. This research is primarily focused on robotic applications and uses 
 the MuJoCo \cite{todorov2012mujoco} physics simulation engine in order to simulate the robotic systems. In this paper, do-mpc \cite{FIEDLER2023105676}, a library for nonlinear MPC control, is used to simplify the 
 implementation of MPC control. This research builds off of previous work \cite{Howell2024} which used the Dymos Optimal Control library \cite{Falck2021} in order to preform CCD of a simple 
 two legged walking robot known as the compass gait. 
@@ -144,8 +144,8 @@ compass gait, there is a single control input applied to the hip.
 
 MPC control was implemented on the three link walker by considering two phases for this system, a two link and a 
 three link phase, where the two link phase has the same dynamics as the compass gait. A diagram showing these phases is shown in 
-Figure \ref{fig:threelegstates}. These phases were treated as seperate systems with different governing equations and 
-each phase was controlled using a seperate MPC controller. The transition between the two phases was triggered by "knee-strike", where the 
+Figure \ref{fig:threelegstates}. These phases were treated as separate systems with different governing equations and 
+each phase was controlled using a separate MPC controller. The transition between the two phases was triggered by "knee-strike", where the 
 knee joint angle became equal to the angle of the swing leg, and "heel-strike", where the swing leg comes into contact with the ground. The 
 transition between the phases were calculated using the transition equations from \cite{Chen2007PassiveDW}.
 \begin{figure}[!h]
@@ -181,7 +181,7 @@ shown in \ref{eq:twolinkphaseopt} where the states of the system ($x$) consist o
   \label{eq:twolinkphaseopt}
 \end{equation}
 
-In the optimization problem, $x_N$ and $x_k$ represent the terminal and current states of the system and $x_r$ respresents the target states.
+In the optimization problem, $x_N$ and $x_k$ represent the terminal and current states of the system and $x_r$ represents the target states.
 $N$ is defined as the finite horizon of the MPC problem as can be thought of as how many timesteps in the future the model predicts the behavior of the system.
 the $Q_N$ and $Q$ matrices are weighting matrices for the control of each state; In this case, they are equal to the identity matrix.
 The $R$ matrix is a weighting matrix to penalize the control input and is equal to 1 (scalar for one control input).
@@ -205,7 +205,7 @@ The target states for each phase are the states which were pre-determined to be 
 Phase II of this research consisted of using the knowledge of MPC which was gained from phase I and applying it to a more complex system in the MuJoCo physics engine which can 
 simulate complicated robotic systems such as the humanoid shown in Figure \ref{fig:humanoid}. Instead of applying MPC control to the humanoid, MPC control was first applied to a simpler system 
 in a way which can be easily scaled up to the humanoid. The chosen system was the classic cart pole control problem, where a pole with a 
-mass attatched to the end is attatched to a cart which can move back and forth in one direction. This is shown in Figure \ref{fig:cartpole}. The goal of this problem is to 
+mass attached to the end is attached to a cart which can move back and forth in one direction. This is shown in Figure \ref{fig:cartpole}. The goal of this problem is to 
 control the pole to balance upright on the cart when the cart is at a stationary set location. This is done by applying a force to the cart to move it in the positive or 
 negative x direction.
 
@@ -302,8 +302,8 @@ obtained in a similar manner by perturbing the control input as shown in \ref{eq
 \end{equation}
 
 After determining the A and B matrices for the cart pole MuJoCo system, the problem could then be solved by integrating the MuJoCo engine with the do-mpc interface.
-However, since the A and B matrices were being calculated at each time step, the dompc problem needed to be re-initialzed at each time step with the updated A and B matrices.
-This caused computational inefficency and will be addressed in future research.
+However, since the A and B matrices were being calculated at each time step, the dompc problem needed to be re-initialized at each time step with the updated A and B matrices.
+This caused computational inefficiency and will be addressed in future research.
 
 \section{Results}
 
@@ -314,7 +314,7 @@ walker was also simulated without control in order to compare the limit cycles o
 \ref{tab:walker_params} and the initial condition is shown in Table \ref{tab:walker_init}
 The gait of the passive walker as well as 
 the timeseries states are shown in Figure \ref{fig:passive_sol}. As can be seen, both the knee strike and heel strike can be seen clearly in the gait cycle.
-The knee strike occurs as a small instantanious change in angular velocity of the swing leg (the $x_2, x_5$ leg). The heel strike occurs when the system switches the swing legs 
+The knee strike occurs as a small instantaneous change in angular velocity of the swing leg (the $x_2, x_5$ leg). The heel strike occurs when the system switches the swing legs 
 and the stance legs. This can be seem as the transition from the $x_2, x_5$ graph to the $x_1, x_4$ graph.
 
 \begin{table}[h]
@@ -362,7 +362,7 @@ and the stance legs. This can be seem as the transition from the $x_2, x_5$ grap
   \end{figure}
 
 The MPC controlled graphs for the three link walker are similarly shown in Figure \ref{fig:active_sol}. The chaotic nature of the gait cycle in the active three link walker 
-can be clearly seen. Despite the walker acheiving the goal of not falling over, there are clear stability issues with the MPC controller. This is most likely due 
+can be clearly seen. Despite the walker achieving the goal of not falling over, there are clear stability issues with the MPC controller. This is most likely due 
 to the way the objective of control is defined. Since the target states are simply defined as predetermined states where knee strike and heel strike occur, the 
 active walker is constrained in its motion and is unable to find a stable gait cycle which passes through the specified transition points. 
 Using a different control objective such as controlling the average forward speed of the walker or doing path planning to find the optimal path the legs should take 
@@ -380,7 +380,7 @@ would most likely cause the gait cycle of this walker to be stable.
 The cartpole system was simulated using MPC control for both cases, using the equations of motion and MuJoCo. The parameters for the cartpole using the equations of motion are shown 
 in Table \ref{tab:cartpole_params}. The MuJoCo case used the same pole length and cart mass; however, it should be noted that the physics of the system were slightly different.
 In the MuJoCo system, the pole was treated as a solid rod of constant density, while in the equations of motion case, the pole was treated as a massless rod 
-with a point mass attatched to the top of it. This changes the dynamics of the system and should be addressed in future research.
+with a point mass attached to the top of it. This changes the dynamics of the system and should be addressed in future research.
 
 \begin{table}[h]
   \centering
@@ -420,14 +420,14 @@ In Figure \ref{fig:sol_mj} the calculated states from the MuJoCo simulation and 
 finite difference) are compared. As can be seen the MuJoCo states are equal to the linearized equations of motion states (do-mpc states) throughout the duration 
 of the simulation. One thing that should be considered however, is that when using MPC control, the future states of the system are predicted for a set 
 "control horizon" (70 time steps in this case). Since the system is linearized at each time step during the simulation, it is expected that the current state of the 
-system is equivelant between the MuJoCo simulation and the linearized equations of motion; however, during the control horizon it is probable that after a certain amount of time 
-when the state of the system is sufficently far from the state about which the system was linearized that the predictions become inaccurate. This means that it is possible 
+system is equivalent between the MuJoCo simulation and the linearized equations of motion; however, during the control horizon it is probable that after a certain amount of time 
+when the state of the system is sufficiently far from the state about which the system was linearized that the predictions become inaccurate. This means that it is possible 
 for a control horizon which is too long to cause the control to fail due to the inaccuracy in the future predictions of the model.
 
 While the MPC controller works to stabilize the MuJoCo system when the parameters are the same as the above case, it was observed 
 that if the parameters are changed too far from the original parameters the control will fail. Shown are two examples of this in 
 \ref{fig:cartpole_fail} where the pole length is changed to 0.5 and 0.2m.
-As can be seen, the pole position is unstable and does not balance. It is hypothesied that 
+As can be seen, the pole position is unstable and does not balance. It is hypothesised that 
 this failure is caused by the difference in physics between the two cases, as the equations of motion case does not fail when the parameters are changed. It is also possible 
 that the inaccurate control horizon is causing this failure. This is being investigated by creating a new MuJoCo model which is exactly the same as the equations of motion case 
 and comparing the two cases again.
@@ -446,7 +446,7 @@ better understand how MPC control can be applied to simple robotic systems using
 implementing MPC control on a general system (the cartpole problem) in the MuJoCo physics engine in order to eventually scale MPC control to a more 
 complex robotic system in MuJoCo such as the humanoid robot in phase III of this reserach. 
 
-MPC control was implemented on a three link walker using do-mpc with the goal of steadily walking down a slope. This goal was acheived by the walker; however,
+MPC control was implemented on a three link walker using do-mpc with the goal of steadily walking down a slope. This goal was achieved by the walker; however,
 the gait cycle of the walker was chaotic and unstable. This is most likely due to a poor choice of control objective where the target states were simply predetermined 
 states where knee strike and heel strike occur. In future work such as implementing MPC control on the humanoid robot, a better control objective will be established such as 
 controlling the average speed of the humanoid and also implementing path planning and motion planning in order to acheive a stable gait cycle.
@@ -454,15 +454,15 @@ controlling the average speed of the humanoid and also implementing path plannin
 MPC control was also established over the cartpole system in MuJoCo in phase II of this research. The MuJoCo cartpole system solution was compared to a solution
 where the equations of motion of the cartpole were used to simulate the system instead of a physics engine. In both cases, the cartpole was able to be balanced when the 
 parameters of the system were ideal. However, in the MuJoCo simulation case, the control of the cartpole was not robust and failed when the parameters of the system were
-poorly chosen while the equations of motion case did not fail under the same conditions. It is hypothesied that this is due to the difference in physics 
+poorly chosen while the equations of motion case did not fail under the same conditions. It is hypothesised that this is due to the difference in physics 
 between the two systems as the MuJoCo system treats the pole as a solid rod of constant density while the equations of motion case treats the pole as a massless rod with a point mass 
-attatched to the end. This change in dynamics causes a drastic difference in the moment of inertia of the pole and makes it much more difficult to control in the 
+attached to the end. This change in dynamics causes a drastic difference in the moment of inertia of the pole and makes it much more difficult to control in the 
 MuJoCo case. This hypothesis is being tested in future research by creating a new MuJoCo model which is exactly the same as the equations of motion case 
 and comparing the two cases again.
 
 Phase III of this research involves scaling the MPC control of the cartpole system in MuJoCo up into a more complex humanoid robot system and preforming CCD on the robot. 
-This will involve implementing better algorithims for control such as path and motion planning and obstacle avoidance. This will also involve implementing a different 
-MPC controller rather than using do-mpc in order to eliminate the inefficencies caused by re-initializing the do-mpc system at each time step in the simulation. The end 
+This will involve implementing better algorithms for control such as path and motion planning and obstacle avoidance. This will also involve implementing a different 
+MPC controller rather than using do-mpc in order to eliminate the inefficiencies caused by re-initializing the do-mpc system at each time step in the simulation. The end 
 goal of this research is to create a tool which can be used to preform robust control co-design on any dynamical system (linear or non-linear) using MPC control.
 
 \pagestyle{plain}
