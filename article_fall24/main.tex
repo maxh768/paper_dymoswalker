@@ -425,11 +425,45 @@ when the state of the system is sufficently far from the state about which the s
 for a control horizon which is too long to cause the control to fail due to the inaccuracy in the future predictions of the model.
 
 While the MPC controller works to stabilize the MuJoCo system when the parameters are the same as the above case, it was observed 
-that if the parameters are changed too far from the original parameters the control will fail. An example of this using the parameters shown in 
-\ref{tab:fail_cartpole} is shown in Figure \ref{fig:fail_cartpole}. As can be seen, the pole position is unstable and does not balance. It is hypothesied that 
+that if the parameters are changed too far from the original parameters the control will fail. Shown are two examples of this in 
+\ref{fig:cartpole_fail} where the pole length is changed to 0.5 and 0.2m.
+As can be seen, the pole position is unstable and does not balance. It is hypothesied that 
 this failure is caused by the difference in physics between the two cases, as the equations of motion case does not fail when the parameters are changed. It is also possible 
 that the inaccurate control horizon is causing this failure. This is being investigated by creating a new MuJoCo model which is exactly the same as the equations of motion case 
 and comparing the two cases again.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=6cm]{./figures/cartpole_mjpc_times_0.5.png} % Just stack two includegraphics!
+  \includegraphics[width=6cm]{./figures/cartpole_mjpc_times_0.2.png} % Just stack two includegraphics!
+  \caption{Control of the MuJoCo cartpole fails with pole lengths of 0.5m (left) and 0.2m (right).}
+  \label{fig:cartpole_fail}
+\end{figure}
+
+\section{Conclusion and Future Work}
+The two phases of research discussed in this paper include implementing MPC control on a three link walker in order to 
+better understand how MPC control can be applied to simple robotic systems using do-mpc as well as 
+implementing MPC control on a general system (the cartpole problem) in the MuJoCo physics engine in order to eventually scale MPC control to a more 
+complex robotic system in MuJoCo such as the humanoid robot in phase III of this reserach. 
+
+MPC control was implemented on a three link walker using do-mpc with the goal of steadily walking down a slope. This goal was acheived by the walker; however,
+the gait cycle of the walker was chaotic and unstable. This is most likely due to a poor choice of control objective where the target states were simply predetermined 
+states where knee strike and heel strike occur. In future work such as implementing MPC control on the humanoid robot, a better control objective will be established such as 
+controlling the average speed of the humanoid and also implementing path planning and motion planning in order to acheive a stable gait cycle.
+
+MPC control was also established over the cartpole system in MuJoCo in phase II of this research. The MuJoCo cartpole system solution was compared to a solution
+where the equations of motion of the cartpole were used to simulate the system instead of a physics engine. In both cases, the cartpole was able to be balanced when the 
+parameters of the system were ideal. However, in the MuJoCo simulation case, the control of the cartpole was not robust and failed when the parameters of the system were
+poorly chosen while the equations of motion case did not fail under the same conditions. It is hypothesied that this is due to the difference in physics 
+between the two systems as the MuJoCo system treats the pole as a solid rod of constant density while the equations of motion case treats the pole as a massless rod with a point mass 
+attatched to the end. This change in dynamics causes a drastic difference in the moment of inertia of the pole and makes it much more difficult to control in the 
+MuJoCo case. This hypothesis is being tested in future research by creating a new MuJoCo model which is exactly the same as the equations of motion case 
+and comparing the two cases again.
+
+Phase III of this research involves scaling the MPC control of the cartpole system in MuJoCo up into a more complex humanoid robot system and preforming CCD on the robot. 
+This will involve implementing better algorithims for control such as path and motion planning and obstacle avoidance. This will also involve implementing a different 
+MPC controller rather than using do-mpc in order to eliminate the inefficencies caused by re-initializing the do-mpc system at each time step in the simulation. The end 
+goal of this research is to create a tool which can be used to preform robust control co-design on any dynamical system (linear or non-linear) using MPC control.
 
 
 \end{document}
