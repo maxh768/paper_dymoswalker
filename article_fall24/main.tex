@@ -101,16 +101,16 @@ fdas
 \section{Introduction}
 
 Control Co-Design (CCD) is an engineering design strategy used to optimize the design of a system with control in mind. CCD can be acheived using various control schemes, 
-including open loop control [1], PID control, and other optimal control methods such as LQR or MPC Control. CCD has a very wide range of applications such as in 
-aerospace systems [2] and in thermal energy storage [3]. While CCD has been used in various industries there has yet to be a compreherensive tool developed
+including open loop control \cite{Sundarrajan2023}, PID control, and other optimal control methods such as LQR or MPC Control. CCD has a very wide range of applications such as in 
+aerospace systems \cite{Van2019} and in thermal energy storage \cite{10177617}. While CCD has been used in various industries there has yet to be a compreherensive tool developed
 to preform robust CCD using differentiable optimal control strategies such as nonlinear MPC control.
 
 This research focuses on developing a tool which can be used in order to preform robust CCD using MPC control. This research is primarly focused on robotic applications and uses 
-the MuJoCo [4] physics simulation engine in order to simulate the robotic systems. In this paper, do-mpc [5], a library for nonlinear MPC control, is used to simplify the 
-implementation of MPC control. This research builds off of previous work [6] which used the Dymos Optimal Control library [7] in order to preform CCD of a simple 
+the MuJoCo \cite{todorov2012mujoco} physics simulation engine in order to simulate the robotic systems. In this paper, do-mpc \cite{FIEDLER2023105676}, a library for nonlinear MPC control, is used to simplify the 
+implementation of MPC control. This research builds off of previous work \cite{Howell2024} which used the Dymos Optimal Control library \cite{Falck2021} in order to preform CCD of a simple 
 two legged walking robot known as the compass gait. 
 
-This portion of research can be broken down into three phases; phase one involved using the work done in [6] and implementing MPC control on a slightly 
+This portion of research can be broken down into three phases; phase one involved using the work done in \cite{Howell2024} and implementing MPC control on a slightly 
 more complicated three link walker. The purpose of this phase was to understand how to implement MPC control on a simplified model of a robotic system.
 Phase two of this research consisted of using the knowledge of MPC control from phase one and implementing it in a more complex system using the MuJoCo physics engine.
 Phase three consists of using the MPC controlled MuJoCo system and preforming CCD on the system as well as implementing more complex algorithms used in robotics such as 
@@ -120,10 +120,10 @@ path planning and obstacle avoidance. Phase three of this research is incomplete
 
 \subsection{Phase I: MPC of the Three Link Walker}
 
-Phase I consisted of building on the research done in [6] and implementing MPC control a slightly more complex three link walker.
+Phase I consisted of building on the research done in \cite{Howell2024} and implementing MPC control a slightly more complex three link walker.
 The compass gait is a simple two legged walking robot which is able to passively walk down an incline with no control input. The three link walker is a similar system 
 but is more realistic as it uses a knee joint to walk. The compass gait as well as three link walker are hybrid systems, meaning they change dynamics based on the state of the system.
-The compass gait is shown in Figure \ref{fig:compass_gait}; for a more detailed look at the dynamics of the compass gait, see [6].
+The compass gait is shown in Figure \ref{fig:compass_gait}; for a more detailed look at the dynamics of the compass gait, see \cite{Howell2024}.
 
 \begin{figure}[!h]
   \centering
@@ -132,7 +132,7 @@ The compass gait is shown in Figure \ref{fig:compass_gait}; for a more detailed 
   \label{fig:compass_gait}
 \end{figure}
 
-The three link walker system is shown in Figure \ref{fig:threeleg}. For a more detailed look at the dynamics of the three link walker, see [8]. In both the three link walker and
+The three link walker system is shown in Figure \ref{fig:threeleg}. For a more detailed look at the dynamics of the three link walker, see \cite{Chen2007PassiveDW}. In both the three link walker and
 compass gait, there is a single control input applied to the hip.
 
 \begin{figure}[!h]
@@ -147,7 +147,7 @@ three link phase, where the two link phase has the same dynamics as the compass 
 Figure \ref{fig:threelegstates}. These phases were treated as seperate systems with different governing equations and 
 each phase was controlled using a seperate MPC controller. The transition between the two phases was triggered by "knee-strike", where the 
 knee joint angle became equal to the angle of the swing leg, and "heel-strike", where the swing leg comes into contact with the ground. The 
-transition between the phases were calculated using the transition equations from [8].
+transition between the phases were calculated using the transition equations from \cite{Chen2007PassiveDW}.
 \begin{figure}[!h]
   \centering
   \includegraphics[width=8cm]{./figures/threelegstates.png}
@@ -223,7 +223,7 @@ negative x direction.
   \label{fig:cartpole} 
 \end{figure}
 
-The cart pole system has previously been solved with various control techniques using the governing equations of motion for the system. The equations are derived in [9]. In this
+The cart pole system has previously been solved with various control techniques using the governing equations of motion for the system. The equations are derived in \cite{key}. In this
 paper, the cart pole problem was solved using both MPC control with the equations of motion and using MPC control in MuJoCo in order to compare the results.
 The states for each cart pole problem are shown in \ref{eq:cartpolestates} and the initial and target states of this problem are shown in
 \ref{tab:init_tar_carteqn}.
@@ -464,6 +464,10 @@ Phase III of this research involves scaling the MPC control of the cartpole syst
 This will involve implementing better algorithims for control such as path and motion planning and obstacle avoidance. This will also involve implementing a different 
 MPC controller rather than using do-mpc in order to eliminate the inefficencies caused by re-initializing the do-mpc system at each time step in the simulation. The end 
 goal of this research is to create a tool which can be used to preform robust control co-design on any dynamical system (linear or non-linear) using MPC control.
+
+\pagestyle{plain}
+\normalsize
+\bibliography{bib/references}
 
 
 \end{document}
