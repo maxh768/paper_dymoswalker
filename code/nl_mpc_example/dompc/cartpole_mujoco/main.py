@@ -24,7 +24,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 # make function to do co design using finite difference
-def balance(delta_t = 0.02, plotting = False, polelen = 0.3, kg_m_pole = 16.687):
+def balance(delta_t = 0.01, plotting = False, polelen = 0.3, kg_m_pole = 16.687):
 
     # set initial conditions
     x0 = [0, np.deg2rad(180)]
@@ -188,4 +188,4 @@ def balance(delta_t = 0.02, plotting = False, polelen = 0.3, kg_m_pole = 16.687)
 
 
 if __name__ == "__main__":
-    balance(polelen = 0.2,plotting=True)
+    balance(polelen = 0.3,plotting=True)
